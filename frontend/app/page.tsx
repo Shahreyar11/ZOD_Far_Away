@@ -42,8 +42,8 @@ const FEATURES = [
   },
   {
     icon: Truck,
-    title: 'Freight Services',
-    desc: 'Air, sea, road and warehousing with live rate comparison, booking, and real-time tracking.',
+    title: 'Freight Estimation',
+    desc: 'Calculate precise freight costs using our live fuel and distance multipliers.',
     href: '/services',
     color: '#F59E0B',
     bg: '#FFFBEB',

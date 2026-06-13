@@ -118,6 +118,89 @@ app.get('/api/search', async (req, res) => {
   }
 });
 
+// --- TRADE INTELLIGENCE PLATFORM ENDPOINTS ---
+
+const { CountryTax, ComplianceRule, DocumentRule } = require('./models/TradeIntelligence');
+const { calculateFreightCost } = require('./services/freightEngine');
+const { startFuelIntelligenceCron } = require('./services/fuelIntelligence');
+
+// Start the background cron job for fuel prices
+startFuelIntelligenceCron();
+
+// Get Product Details + Trade Intelligence based on Destination
+app.get('/api/product/:hsCode/intelligence', async (req, res) => {
+  try {
+    const { hsCode } = req.params;
+    const { destination, weight = 100 } = req.query; // Default 100kg if not provided
+
+    // 1. Get Product Details from HSCode Collection
+    const HSCode = require('./models/HSCode');
+    const product = await HSCode.findOne({ hsn8Digit: hsCode }).lean();
+    
+    if (!product) {
+      return res.status(404).json({ error: "Product HS Code not found" });
+    }
+
+    // Ensure we don't send massive embeddings to the frontend
+    delete product.embedding;
+
+    // If no destination is selected yet, just return the product info
+    if (!destination) {
+      return res.json({ product });
+    }
+
+    // 2. Fetch Compliance Rules & Taxes for Destination
+    // For demo purposes, if they don't exist in DB, we'll generate deterministic mock ones
+    let countryTax = await CountryTax.findOne({ hsnCode: hsCode, destinationCountry: destination }).lean();
+    let compRule = await ComplianceRule.findOne({ hsnCode: hsCode, destinationCountry: destination }).lean();
+    let docRule = await DocumentRule.findOne({ hsnCode: hsCode, destinationCountry: destination }).lean();
+
+    // --- Dynamic Mock Rule Generator (for demonstration) ---
+    if (!countryTax) {
+      // Deterministic generation based on character code
+      const hash = hsCode.charCodeAt(0) + destination.charCodeAt(0);
+      
+      countryTax = {
+        importDuty: (hash % 15) + 5, // 5% to 20%
+        vatGst: destination === 'India' ? 18 : (destination === 'UAE' ? 5 : 20)
+      };
+      
+      compRule = {
+        isDangerousGood: hash % 10 === 0, // 10% chance
+        restrictions: hash % 3 === 0 ? ['Import License Required'] : [],
+        dgWarnings: hash % 10 === 0 ? ['Class 9 Miscellaneous Dangerous Goods'] : []
+      };
+      
+      docRule = {
+        requiredDocuments: ['Commercial Invoice', 'Packing List', 'Bill of Lading', 'Certificate of Origin']
+      };
+      if (hash % 2 === 0) docRule.requiredDocuments.push('Phytosanitary Certificate');
+    }
+    // -------------------------------------------------------
+
+    // 3. Calculate Freight Cost
+    const origin = 'United States'; // Hardcoded for demo
+    const freightCost = await calculateFreightCost({
+      origin,
+      destination,
+      weightKg: parseFloat(weight)
+    });
+
+    // 4. Send combined Trade Intelligence Payload
+    res.json({
+      product,
+      taxes: countryTax,
+      compliance: compRule,
+      documents: docRule,
+      freight: freightCost
+    });
+
+  } catch (error) {
+    console.error("Intelligence endpoint error:", error);
+    res.status(500).json({ error: "Internal server error." });
+  }
+});
+
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`Backend server running on port ${PORT}`);
