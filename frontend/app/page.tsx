@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
 import { ArrowRight, Search, Globe, Calculator, Truck, ChevronRight, TrendingUp, Shield, Clock } from 'lucide-react';
+import HSSearchBar from '../components/HSSearchBar';
 
 export const metadata: Metadata = {
   title: 'ZODFarAway — Global Logistics & Supply Chain',
@@ -112,7 +113,11 @@ export default function HomePage() {
             From HS code classification to last-mile delivery — calculate duties, compare freight, and manage your entire supply chain in one place.
           </p>
 
-          <div className="animate-fadeUp delay-3" style={{
+          <div className="animate-fadeUp delay-3" style={{ position: 'relative', zIndex: 50 }}>
+            <HSSearchBar />
+          </div>
+
+          <div className="animate-fadeUp delay-4" style={{
             display: 'flex', gap: '0.875rem', justifyContent: 'center', flexWrap: 'wrap', marginBottom: '3.5rem',
           }}>
             <Link href="/cost-calculator" className="btn btn-white btn-lg">
