@@ -239,10 +239,22 @@ function fallbackLocalParse(query) {
   }
   
   let weight = null;
-  const weightRegex = /(\d+(?:\.\d+)?)\s*(?:kg|kilograms?|kilo?s?)\b/i;
-  const match = lowercaseQuery.match(weightRegex);
-  if (match) {
-    weight = parseFloat(match[1]);
+  let quantity = 1;
+  let quantityParsed = false;
+
+  const qtyWeightRegex = /(\d+)\s*(?:x|\*|\s+)\s*(\d+(?:\.\d+)?)\s*(?:kg|kilograms?|kilo?s?)\b/i;
+  const qtyWeightMatch = lowercaseQuery.match(qtyWeightRegex);
+  if (qtyWeightMatch) {
+    quantity = parseInt(qtyWeightMatch[1], 10);
+    const unitWeight = parseFloat(qtyWeightMatch[2]);
+    weight = quantity * unitWeight;
+    quantityParsed = true;
+  } else {
+    const weightRegex = /(\d+(?:\.\d+)?)\s*(?:kg|kilograms?|kilo?s?)\b/i;
+    const match = lowercaseQuery.match(weightRegex);
+    if (match) {
+      weight = parseFloat(match[1]);
+    }
   }
   
   let product = query;
@@ -278,7 +290,8 @@ function fallbackLocalParse(query) {
     /\bwith\b/gi,
     /\bweighing\b/gi,
     /\bweight\b/gi,
-    /\d+(?:\.\d+)?\s*(?:kg|kilograms?|kilo?s?)\b/gi,
+    /(?:\b\d+\s*(?:x|\*|\s+))?\b\d+(?:\.\d+)?\s*(?:kg|kilograms?|kilo?s?)\b/gi,
+    /\b\d+\s*(?:units|pcs|pieces|items|qty|quantity)\b/gi,
     /\b\d+\b/gi
   ];
   
@@ -297,15 +310,16 @@ function fallbackLocalParse(query) {
     product = product.trim();
   }
 
-  let quantity = 1;
-  const qtyRegex = /(\d+)\s*(?:units|pcs|pieces|items|qty|quantity)\b/i;
-  const qtyMatch = lowercaseQuery.match(qtyRegex);
-  if (qtyMatch) {
-    quantity = parseInt(qtyMatch[1], 10);
-  } else {
-    // Check for "a [product]" or "an [product]" or "single [product]" which implies 1
-    if (/\b(?:a|an|single|one)\b/i.test(lowercaseQuery)) {
-      quantity = 1;
+  if (!quantityParsed) {
+    const qtyRegex = /(\d+)\s*(?:units|pcs|pieces|items|qty|quantity)\b/i;
+    const qtyMatch = lowercaseQuery.match(qtyRegex);
+    if (qtyMatch) {
+      quantity = parseInt(qtyMatch[1], 10);
+    } else {
+      // Check for "a [product]" or "an [product]" or "single [product]" which implies 1
+      if (/\b(?:a|an|single|one)\b/i.test(lowercaseQuery)) {
+        quantity = 1;
+      }
     }
   }
   
@@ -357,6 +371,8 @@ app.post('/api/assistant/parse', async (req, res) => {
                     text: `Analyze the user's shipping query and extract key logistics details. Match countries to our supported list.
 Supported Countries: United States, United Kingdom, Germany, France, Japan, China, India, UAE, Saudi Arabia, Australia, Canada, Brazil, South Korea, Singapore, Netherlands, Italy, Spain, Mexico, Indonesia, South Africa.
 
+If the query specifies a quantity and a weight-per-unit (e.g., '7 5kg batteries' or '7 batteries, 5kg each'), calculate and return the total gross weight (quantity * weight-per-unit) as the weight.
+
 User Query: "${query}"`
                   }
                 ]
@@ -381,7 +397,7 @@ User Query: "${query}"`
                   },
                   weight: {
                     type: "number",
-                    description: "The total gross weight of the shipment in kilograms (numeric only), or null if not specified."
+                    description: "The total gross weight of the shipment in kilograms (numeric only), or null if not specified. If query specifies quantity and weight-per-unit (e.g. '7 5kg' or '7 batteries of 5kg each'), you must calculate and return their product as the total weight."
                   },
                   quantity: {
                     type: "number",
