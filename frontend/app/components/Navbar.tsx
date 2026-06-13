@@ -11,6 +11,8 @@ const NAV_LINKS = [
   { href: '/supply-chain',    label: 'Supply Chain' },
   { href: '/cost-calculator', label: 'Cost Calculator' },
   { href: '/route-optimization', label: 'Route Optimizer' },
+  { href: '/theft-reports',    label: 'Theft Reports' },
+  { href: '/warehouse-congestion', label: 'Warehouse Congestion' },
   { href: '/services',        label: 'Services' },
   { href: '/about',           label: 'About' },
 ];

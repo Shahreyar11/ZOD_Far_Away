@@ -4,13 +4,17 @@ const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
 const mongoose = require('mongoose');
+const path = require('path');
 
 const app = express();
 
-app.use(helmet());
+app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
 app.use(cors());
 app.use(express.json());
 app.use(morgan('dev'));
+
+// Serve uploaded evidence files
+app.use('/uploads/theft-reports', express.static(path.join(__dirname, 'uploads', 'theft-reports')));
 
 const MONGODB_URI = process.env.MONGODB_URI;
 
@@ -235,6 +239,14 @@ app.post('/api/routes/optimize', async (req, res) => {
     res.status(500).json({ error: error.message || 'Route optimization failed.' });
   }
 });
+
+// --- THEFT REPORTS ---
+const theftReportsRouter = require('./routes/theftReports');
+app.use('/api/theft-reports', theftReportsRouter);
+
+// --- WAREHOUSE CONGESTION PREDICTOR ---
+const warehouseCongestionRouter = require('./routes/warehouseCongestion');
+app.use('/api/warehouse-congestion', warehouseCongestionRouter);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
