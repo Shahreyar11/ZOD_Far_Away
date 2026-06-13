@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Search, Loader2 } from 'lucide-react';
+import Link from 'next/link';
 
 interface SearchResult {
   hsn4Digit: string;
@@ -105,33 +106,28 @@ export default function HSSearchBar() {
             <div style={{ padding: '1rem', color: 'var(--muted)', fontSize: '0.875rem' }}>No HS codes found for "{query}".</div>
           )}
           {results.map((r, i) => (
-            <div key={i} style={{
-              padding: '1rem',
-              borderBottom: i < results.length - 1 ? '1px solid var(--border)' : 'none',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '0.25rem'
-            }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <span style={{ fontWeight: 600, color: 'var(--navy)', fontSize: '0.9375rem' }}>
-                  {r.productName}
-                </span>
-                <span style={{ 
-                  background: 'var(--accent-bg)', 
-                  color: 'var(--accent)', 
-                  padding: '0.15rem 0.5rem', 
-                  borderRadius: 'var(--radius-sm)',
-                  fontSize: '0.75rem',
-                  fontWeight: 700
-                }}>
-                  GST: {r.gstRate}
-                </span>
+            <Link href={`/product/${r.hsn8Digit}`} key={i} style={{ textDecoration: 'none' }}>
+              <div style={{
+                padding: '1rem',
+                borderBottom: i < results.length - 1 ? '1px solid var(--border)' : 'none',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0.25rem',
+                cursor: 'pointer'
+              }}
+              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'var(--surface)' }}
+              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'transparent' }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <span style={{ fontWeight: 600, color: 'var(--navy)', fontSize: '0.9375rem' }}>
+                    {r.productName}
+                  </span>
+                </div>
+                <div style={{ display: 'flex', gap: '1rem', fontSize: '0.8125rem', color: 'var(--muted)' }}>
+                  <span><strong style={{ color: '#4b5563' }}>HS Code:</strong> {r.hsn8Digit || r.hsn4Digit}</span>
+                </div>
               </div>
-              <div style={{ display: 'flex', gap: '1rem', fontSize: '0.8125rem', color: 'var(--muted)' }}>
-                <span><strong style={{ color: '#4b5563' }}>HSN 4:</strong> {r.hsn4Digit}</span>
-                <span><strong style={{ color: '#4b5563' }}>HSN 8:</strong> {r.hsn8Digit}</span>
-              </div>
-            </div>
+            </Link>
           ))}
         </div>
       )}
