@@ -1,36 +1,52 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
-import {
-  Calculator, ArrowRight, Info, DollarSign, Package2,
-  Ship, Plane, Truck, RefreshCw, Download, ChevronDown,
-} from 'lucide-react';
+import { Calculator, ArrowRight, Info, RefreshCw, Plane, Ship, Truck } from 'lucide-react';
 
-const countries = [
+// ─────────────────────────────────────────────────────────────
+// TYPES
+// ─────────────────────────────────────────────────────────────
+type FreightMode = 'air' | 'sea' | 'road';
+
+interface CostBreakdown {
+  productValue:  number;
+  freightCost:   number;
+  insuranceCost: number;
+  cif:           number;
+  importDuty:    number;
+  vat:           number;
+  brokerageFee:  number;
+  total:         number;
+}
+
+// TODO: API — Replace HS_EXAMPLES with real search: GET /api/hs-codes
+const HS_EXAMPLES = [
+  { code: '8471.30', label: 'Laptops',            duty: 0   },
+  { code: '6101.20', label: 'Cotton Clothing',     duty: 12  },
+  { code: '0901.11', label: 'Coffee (unroasted)',  duty: 7.5 },
+  { code: '8703.23', label: 'Passenger Cars',      duty: 6.5 },
+  { code: '9403.30', label: 'Office Furniture',    duty: 2.7 },
+  { code: '3004.90', label: 'Pharmaceuticals',     duty: 0   },
+  { code: '8507.60', label: 'Lithium Batteries',   duty: 1.8 },
+];
+
+// TODO: API — Replace with live freight quotes (Flexport / Freightos API)
+const FREIGHT_RATES: Record<FreightMode, { label: string; icon: React.ElementType; minUSD: number; ratePerKg: number; color: string; bg: string }> = {
+  air:  { label: 'Air Freight',  icon: Plane, minUSD: 150, ratePerKg: 4.5,  color: '#0066FF', bg: '#EBF2FF' },
+  sea:  { label: 'Sea Freight',  icon: Ship,  minUSD: 800, ratePerKg: 0.35, color: '#0D9488', bg: '#EDFAF9' },
+  road: { label: 'Road Freight', icon: Truck, minUSD: 200, ratePerKg: 1.20, color: '#7C3AED', bg: '#F5F3FF' },
+};
+
+const COUNTRIES = [
   'United States', 'United Kingdom', 'Germany', 'France', 'Japan',
   'China', 'India', 'UAE', 'Saudi Arabia', 'Australia', 'Canada',
   'Brazil', 'South Korea', 'Singapore', 'Netherlands', 'Italy',
   'Spain', 'Mexico', 'Indonesia', 'South Africa',
 ];
 
-const hsExamples = [
-  { code: '8471.30', label: 'Laptops', duty: 0 },
-  { code: '6101.20', label: 'Cotton Clothing', duty: 12 },
-  { code: '0901.11', label: 'Coffee (unroasted)', duty: 7.5 },
-  { code: '8703.23', label: 'Passenger Cars', duty: 6.5 },
-  { code: '9403.30', label: 'Office Furniture', duty: 2.7 },
-  { code: '3004.90', label: 'Pharmaceuticals', duty: 0 },
-  { code: '8507.60', label: 'Lithium Batteries', duty: 1.8 },
-];
-
-const freightRates = {
-  air: { rate: 0.05, label: 'Air Freight', min: 150, icon: Plane },    // per kg
-  sea: { rate: 0.008, label: 'Sea Freight', min: 800, icon: Ship },    // per kg
-  road: { rate: 0.02, label: 'Road Freight', min: 200, icon: Truck },  // per kg
-};
-
-const vatRates: Record<string, number> = {
+// TODO: API — Replace with real VAT rates (Avalara / TaxJar)
+const VAT_RATES: Record<string, number> = {
   'United Kingdom': 20, 'Germany': 19, 'France': 20, 'Italy': 22,
   'Spain': 21, 'Netherlands': 21, 'Australia': 10, 'Japan': 10,
   'Canada': 5, 'India': 18, 'United States': 0, 'UAE': 5,
@@ -38,72 +54,92 @@ const vatRates: Record<string, number> = {
   'Mexico': 16, 'China': 13, 'Indonesia': 11, 'South Africa': 15,
 };
 
-function fmt(n: number) {
-  return n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
+const fmt = (n: number) => n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 export default function CostCalculatorPage() {
   const [productValue, setProductValue] = useState('5000');
-  const [weight, setWeight] = useState('50');
-  const [quantity, setQuantity] = useState('100');
-  const [origin, setOrigin] = useState('China');
-  const [destination, setDestination] = useState('United Kingdom');
-  const [selectedHS, setSelectedHS] = useState(hsExamples[0]);
-  const [freight, setFreight] = useState<'air' | 'sea' | 'road'>('sea');
-  const [insurance, setInsurance] = useState(true);
-  const [breakdown, setBreakdown] = useState<null | {
-    productValue: number; freightCost: number; insuranceCost: number;
-    cif: number; importDuty: number; vat: number; brokerageFee: number;
-    total: number;
-  }>(null);
+  const [weight,       setWeight]       = useState('50');
+  const [quantity,     setQuantity]     = useState('100');
+  const [origin,       setOrigin]       = useState('China');
+  const [destination,  setDestination]  = useState('United Kingdom');
+  const [selectedHS,   setSelectedHS]   = useState(HS_EXAMPLES[0]);
+  const [mode,         setMode]         = useState<FreightMode>('sea');
+  const [withInsurance,setInsurance]    = useState(true);
+  const [result,       setResult]       = useState<CostBreakdown | null>(null);
+  const [loading,      setLoading]      = useState(false);
 
+  // TODO: API — Replace this entire function with a backend call:
+  //   POST /api/calculate-landed-cost
+  //   with hsCode, productValue, weightKg, quantity, origin, destination, freightMode, includeInsurance
   function calculate() {
-    const pv = parseFloat(productValue) || 0;
-    const wt = parseFloat(weight) || 0;
-    const mode = freightRates[freight];
-    const freightCost = Math.max(mode.min, wt * mode.rate * pv * 0.01 + mode.min);
-    const insuranceCost = insurance ? pv * 0.012 : 0;
-    const cif = pv + freightCost + insuranceCost;
-    const dutyRate = selectedHS.duty / 100;
-    const importDuty = cif * dutyRate;
-    const vatRate = (vatRates[destination] || 0) / 100;
-    const vat = (cif + importDuty) * vatRate;
-    const brokerageFee = 180 + cif * 0.003;
-    const total = pv + freightCost + insuranceCost + importDuty + vat + brokerageFee;
-    setBreakdown({ productValue: pv, freightCost, insuranceCost, cif, importDuty, vat, brokerageFee, total });
+    setLoading(true);
+    setTimeout(() => {
+      const pv  = parseFloat(productValue) || 0;
+      const wt  = parseFloat(weight)       || 0;
+      const r   = FREIGHT_RATES[mode];
+
+      const freightCost    = Math.max(r.minUSD, wt * r.ratePerKg);
+      const insuranceCost  = withInsurance ? pv * 0.012 : 0;
+      const cif            = pv + freightCost + insuranceCost;
+      const importDuty     = cif * (selectedHS.duty / 100);
+      const vat            = (cif + importDuty) * ((VAT_RATES[destination] ?? 0) / 100);
+      const brokerageFee   = 180 + cif * 0.003;
+      const total          = pv + freightCost + insuranceCost + importDuty + vat + brokerageFee;
+
+      setResult({ productValue: pv, freightCost, insuranceCost, cif, importDuty, vat, brokerageFee, total });
+      setLoading(false);
+    }, 500);
   }
+
+  function reset() { setResult(null); }
+
+  const qty = parseFloat(quantity) || 1;
+  const modeData = FREIGHT_RATES[mode];
 
   return (
     <div style={{ background: 'var(--bg)', minHeight: '80vh' }}>
-      {/* Header */}
-      <div style={{ background: 'linear-gradient(135deg, var(--navy) 0%, var(--navy-mid) 100%)', padding: '4rem 0 3rem' }}>
+
+      {/* Page header */}
+      <div className="page-header">
         <div className="container">
-          <div className="section-label"><Calculator size={14} /> Cost Estimator</div>
-          <h1 style={{ color: '#fff', marginBottom: '0.75rem' }}>
-            Landed Cost & <span className="text-gradient">Duty Calculator</span>
-          </h1>
-          <p style={{ color: 'rgba(255,255,255,0.6)', maxWidth: 560, lineHeight: 1.7, fontSize: '1.0625rem' }}>
-            Calculate your full landed cost including import duties, VAT/GST, freight, insurance, and brokerage fees for any product and country pair.
+          <div className="animate-fadeUp">
+            <div className="label">Cost Estimator</div>
+          </div>
+          <h1 className="animate-fadeUp delay-1" style={{ marginBottom: '0.875rem' }}>Landed Cost Calculator</h1>
+          <p className="animate-fadeUp delay-2" style={{ maxWidth: 520, fontSize: '1.0625rem' }}>
+            Estimate import duties, VAT, freight, insurance, and brokerage for any product and country pair.
           </p>
         </div>
       </div>
 
       <div className="container" style={{ padding: '2.5rem 1.5rem' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem', alignItems: 'start' }}>
-          {/* Calculator form */}
-          <div className="card" style={{ padding: '2rem' }}>
-            <h2 style={{ fontSize: '1.125rem', marginBottom: '1.75rem', color: 'var(--navy)' }}>Shipment Details</h2>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.75rem', alignItems: 'start' }}>
+
+          {/* ── Input form ─────────────────────────────────────── */}
+          <div className="card">
+            <h2 style={{ fontSize: '1.0625rem', marginBottom: '1.75rem', paddingBottom: '1rem', borderBottom: '1px solid var(--border)' }}>
+              Shipment Details
+            </h2>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+
               {/* HS Code */}
               <div>
                 <label>Product / HS Code</label>
+                {/* TODO: API — Replace with searchable input using GET /api/hs-codes?q=<query> */}
                 <select className="input select" value={selectedHS.code}
-                  onChange={e => setSelectedHS(hsExamples.find(h => h.code === e.target.value) || hsExamples[0])}>
-                  {hsExamples.map(h => <option key={h.code} value={h.code}>{h.code} — {h.label}</option>)}
+                  onChange={e => setSelectedHS(HS_EXAMPLES.find(h => h.code === e.target.value)!)}>
+                  {HS_EXAMPLES.map(h => (
+                    <option key={h.code} value={h.code}>{h.code} — {h.label}</option>
+                  ))}
                 </select>
-                <div style={{ marginTop: '0.375rem', fontSize: '0.8rem', color: 'var(--teal)' }}>
-                  Import duty rate: <strong>{selectedHS.duty}%</strong>
+                <div style={{
+                  display: 'inline-flex', alignItems: 'center', gap: '0.375rem',
+                  fontSize: '0.8rem', color: 'var(--accent)', marginTop: '0.375rem',
+                  background: 'var(--accent-bg)', border: '1px solid var(--accent-border)',
+                  borderRadius: 'var(--radius-pill)', padding: '0.2rem 0.625rem',
+                }}>
+                  Import duty: <strong>{selectedHS.duty}%</strong>
                 </div>
               </div>
 
@@ -111,58 +147,61 @@ export default function CostCalculatorPage() {
               <div>
                 <label>Product Value (USD)</label>
                 <div style={{ position: 'relative' }}>
-                  <span style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }}>$</span>
-                  <input className="input" type="number" value={productValue}
+                  <span style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--muted)', fontWeight: 700 }}>$</span>
+                  <input className="input" type="number" min="0" value={productValue}
                     onChange={e => setProductValue(e.target.value)}
-                    style={{ paddingLeft: '2rem' }} />
+                    style={{ paddingLeft: '1.875rem' }} />
                 </div>
               </div>
 
-              {/* Weight */}
-              <div>
-                <label>Gross Weight (kg)</label>
-                <input className="input" type="number" value={weight} onChange={e => setWeight(e.target.value)} />
-              </div>
-
-              {/* Quantity */}
-              <div>
-                <label>Quantity (units)</label>
-                <input className="input" type="number" value={quantity} onChange={e => setQuantity(e.target.value)} />
-              </div>
-
-              {/* Route */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+              {/* Weight & Quantity */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.875rem' }}>
                 <div>
-                  <label>Origin Country</label>
+                  <label>Gross Weight (kg)</label>
+                  <input className="input" type="number" min="0" value={weight} onChange={e => setWeight(e.target.value)} />
+                </div>
+                <div>
+                  <label>Quantity (units)</label>
+                  <input className="input" type="number" min="1" value={quantity} onChange={e => setQuantity(e.target.value)} />
+                </div>
+              </div>
+
+              {/* Origin / Destination */}
+              {/* TODO: API — Replace static list with country API or keep as-is */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.875rem' }}>
+                <div>
+                  <label>Origin</label>
                   <select className="input select" value={origin} onChange={e => setOrigin(e.target.value)}>
-                    {countries.map(c => <option key={c}>{c}</option>)}
+                    {COUNTRIES.map(c => <option key={c}>{c}</option>)}
                   </select>
                 </div>
                 <div>
                   <label>Destination</label>
                   <select className="input select" value={destination} onChange={e => setDestination(e.target.value)}>
-                    {countries.map(c => <option key={c}>{c}</option>)}
+                    {COUNTRIES.map(c => <option key={c}>{c}</option>)}
                   </select>
                 </div>
               </div>
 
               {/* Freight mode */}
+              {/* TODO: API — Replace static buttons with live quotes from freight API */}
               <div>
                 <label>Freight Mode</label>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '0.5rem' }}>
-                  {(Object.entries(freightRates) as [typeof freight, typeof freightRates['air']][]).map(([key, { label, icon: Icon }]) => (
-                    <button key={key} onClick={() => setFreight(key)}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '0.625rem' }}>
+                  {(Object.entries(FREIGHT_RATES) as [FreightMode, typeof FREIGHT_RATES['air']][]).map(([key, { label, icon: Icon, color, bg }]) => (
+                    <button key={key} onClick={() => setMode(key)}
                       style={{
-                        padding: '0.75rem 0.5rem',
-                        borderRadius: 12,
-                        border: `2px solid ${freight === key ? 'var(--teal)' : 'var(--border)'}`,
-                        background: freight === key ? 'rgba(0,180,216,0.08)' : '#fff',
+                        padding: '0.875rem 0.5rem',
+                        borderRadius: 'var(--radius)',
+                        border: `1.5px solid ${mode === key ? color : 'var(--border)'}`,
+                        background: mode === key ? bg : 'var(--surface)',
                         cursor: 'pointer',
-                        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.375rem',
-                        color: freight === key ? 'var(--teal)' : 'var(--text-muted)',
+                        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.4rem',
+                        color: mode === key ? color : 'var(--muted)',
                         fontWeight: 600, fontSize: '0.8rem',
                         fontFamily: 'Inter, sans-serif',
-                        transition: 'all 0.2s ease',
+                        transition: 'all 0.15s',
+                        boxShadow: mode === key ? `0 3px 12px ${color}20` : 'none',
                       }}>
                       <Icon size={18} />
                       {label.split(' ')[0]}
@@ -172,99 +211,133 @@ export default function CostCalculatorPage() {
               </div>
 
               {/* Insurance toggle */}
-              <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer', userSelect: 'none', color: 'var(--text-secondary)', fontWeight: 400, fontSize: '0.9375rem' }}>
-                <input type="checkbox" checked={insurance} onChange={e => setInsurance(e.target.checked)}
-                  style={{ width: 18, height: 18, accentColor: 'var(--teal)', cursor: 'pointer' }} />
-                Include cargo insurance (1.2% of CIF value)
+              <label style={{
+                display: 'flex', alignItems: 'center', gap: '0.75rem',
+                cursor: 'pointer', fontWeight: 400, fontSize: '0.875rem', color: 'var(--navy-2)',
+                padding: '0.75rem 1rem',
+                background: withInsurance ? 'var(--accent-bg)' : 'var(--bg)',
+                border: `1.5px solid ${withInsurance ? 'var(--accent-border)' : 'var(--border)'}`,
+                borderRadius: 'var(--radius)',
+                transition: 'all 0.15s',
+              }}>
+                <input type="checkbox" checked={withInsurance} onChange={e => setInsurance(e.target.checked)}
+                  style={{ width: 17, height: 17, accentColor: 'var(--accent)', cursor: 'pointer' }} />
+                Include cargo insurance (1.2% of CIF)
               </label>
 
-              <button onClick={calculate} className="btn btn-primary" style={{ width: '100%', justifyContent: 'center', padding: '1rem' }}>
-                <Calculator size={18} /> Calculate Landed Cost
+              <button onClick={calculate} className="btn btn-blue" style={{ justifyContent: 'center', padding: '0.9375rem' }} disabled={loading}>
+                {loading ? 'Calculating…' : <><Calculator size={16} /> Calculate Landed Cost</>}
               </button>
             </div>
           </div>
 
-          {/* Results */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-            {!breakdown ? (
-              <div className="card" style={{ textAlign: 'center', padding: '4rem 2rem', color: 'var(--text-muted)' }}>
-                <Calculator size={48} style={{ margin: '0 auto 1rem', opacity: 0.3 }} />
-                <h3 style={{ fontSize: '1rem', marginBottom: '0.5rem', color: 'var(--text-muted)' }}>Enter details and calculate</h3>
-                <p style={{ fontSize: '0.875rem' }}>Your full cost breakdown will appear here.</p>
+          {/* ── Results ─────────────────────────────────────────── */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            {!result ? (
+              <div className="card" style={{ textAlign: 'center', padding: '4rem 2rem', color: 'var(--muted)' }}>
+                <div style={{
+                  width: 72, height: 72, borderRadius: '50%',
+                  background: 'var(--bg)', border: '2px solid var(--border)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  margin: '0 auto 1.25rem',
+                }}>
+                  <Calculator size={30} color="var(--muted)" style={{ opacity: 0.4 }} />
+                </div>
+                <p style={{ margin: 0, fontWeight: 500, color: 'var(--navy)' }}>Ready to calculate?</p>
+                <p style={{ margin: '0.375rem 0 0', fontSize: '0.875rem' }}>Fill in the form and hit calculate.</p>
               </div>
             ) : (
               <>
-                {/* Total highlight */}
+                {/* Total cost highlight */}
                 <div style={{
-                  background: 'linear-gradient(135deg, var(--navy) 0%, var(--navy-mid) 100%)',
-                  borderRadius: 20, padding: '2rem', textAlign: 'center',
+                  background: 'var(--gradient-hero)',
+                  borderRadius: 'var(--radius-xl)',
+                  padding: '2rem',
+                  textAlign: 'center',
+                  position: 'relative', overflow: 'hidden',
                 }}>
-                  <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.875rem', marginBottom: '0.5rem' }}>Total Landed Cost</div>
-                  <div style={{ fontSize: '3rem', fontWeight: 900, color: '#fff', lineHeight: 1 }}>
-                    ${fmt(breakdown.total)}
+                  <div style={{
+                    position: 'absolute', inset: 0,
+                    background: 'radial-gradient(ellipse at 50% 0%, rgba(0,102,255,0.2) 0%, transparent 65%)',
+                    pointerEvents: 'none',
+                  }} />
+                  <div style={{ fontSize: '0.8125rem', color: 'rgba(255,255,255,0.5)', marginBottom: '0.5rem', position: 'relative' }}>Total Landed Cost</div>
+                  <div style={{ fontSize: '3rem', fontWeight: 800, color: '#fff', lineHeight: 1, position: 'relative', letterSpacing: '-0.04em' }}>
+                    ${fmt(result.total)}
                   </div>
-                  <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.875rem', marginTop: '0.5rem' }}>
-                    {origin} → {destination} · {freightRates[freight].label}
+                  <div style={{ fontSize: '0.8125rem', color: 'rgba(255,255,255,0.45)', marginTop: '0.625rem', position: 'relative' }}>
+                    {origin} → {destination} · {modeData.label}
                   </div>
                 </div>
 
-                {/* Breakdown rows */}
+                {/* Breakdown */}
                 <div className="card">
-                  <h3 style={{ fontSize: '1rem', marginBottom: '1.25rem', color: 'var(--navy)' }}>Cost Breakdown</h3>
+                  <h3 style={{ fontSize: '0.9375rem', marginBottom: '1.25rem' }}>Cost Breakdown</h3>
+
                   {[
-                    { label: 'Product Value (FOB)', value: breakdown.productValue, note: '' },
-                    { label: 'Freight Cost', value: breakdown.freightCost, note: freightRates[freight].label },
-                    ...(insurance ? [{ label: 'Cargo Insurance', value: breakdown.insuranceCost, note: '1.2% of CIF' }] : []),
-                    { label: 'CIF Value', value: breakdown.cif, note: 'Cost + Insurance + Freight', divider: true },
-                    { label: `Import Duty (${selectedHS.duty}%)`, value: breakdown.importDuty, note: `HS ${selectedHS.code}` },
-                    { label: `VAT / GST (${vatRates[destination] || 0}%)`, value: breakdown.vat, note: destination },
-                    { label: 'Customs Brokerage', value: breakdown.brokerageFee, note: 'Est. clearance fees' },
-                  ].map(({ label, value, note, divider }: any) => (
+                    { label: 'Product Value (FOB)',                         value: result.productValue,   color: 'var(--navy)' },
+                    { label: `Freight (${modeData.label})`,                 value: result.freightCost,    color: modeData.color },
+                    ...(withInsurance ? [{ label: 'Cargo Insurance (1.2%)', value: result.insuranceCost,  color: 'var(--navy)' }] : []),
+                    { label: 'CIF Value',                                   value: result.cif,            color: 'var(--navy)', divider: true },
+                    { label: `Import Duty (${selectedHS.duty}%)`,           value: result.importDuty,     color: '#DC2626' },
+                    { label: `VAT / GST (${VAT_RATES[destination] ?? 0}%)`, value: result.vat,            color: '#7C3AED' },
+                    { label: 'Customs Brokerage (est.)',                    value: result.brokerageFee,   color: 'var(--navy)' },
+                  ].map(({ label, value, divider, color }: any) => (
                     <div key={label}>
                       {divider && <div className="divider" style={{ margin: '0.75rem 0' }} />}
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.625rem 0', borderBottom: '1px solid var(--border)' }}>
-                        <div>
-                          <div style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--text-primary)' }}>{label}</div>
-                          {note && <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{note}</div>}
-                        </div>
-                        <div style={{ fontWeight: 700, color: divider ? 'var(--navy)' : 'var(--text-primary)' }}>
-                          ${fmt(value)}
-                        </div>
+                      <div style={{
+                        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                        padding: '0.5rem 0', borderBottom: divider ? 'none' : '1px solid var(--border)',
+                      }}>
+                        <span style={{ fontSize: '0.875rem', color: divider ? 'var(--navy)' : 'var(--muted)', fontWeight: divider ? 600 : 400 }}>{label}</span>
+                        <span style={{ fontWeight: divider ? 800 : 600, fontSize: '0.9rem', color: divider ? 'var(--navy)' : color }}>${fmt(value)}</span>
                       </div>
                     </div>
                   ))}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 0 0', marginTop: '0.5rem' }}>
-                    <span style={{ fontWeight: 800, fontSize: '1rem', color: 'var(--navy)' }}>Total Landed Cost</span>
-                    <span style={{ fontWeight: 900, fontSize: '1.25rem', color: 'var(--teal-dark)' }}>${fmt(breakdown.total)}</span>
+
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '1rem', marginTop: '0.25rem' }}>
+                    <span style={{ fontWeight: 700, fontSize: '1rem' }}>Total</span>
+                    <span style={{ fontWeight: 800, fontSize: '1.375rem', color: 'var(--accent)' }}>${fmt(result.total)}</span>
                   </div>
                 </div>
 
-                {/* Per-unit cost */}
-                <div className="card" style={{ background: 'rgba(0,180,216,0.07)', border: '1px solid rgba(0,180,216,0.2)' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div>
-                      <div style={{ fontWeight: 700, color: 'var(--navy)' }}>Cost Per Unit</div>
-                      <div style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>Based on {quantity} units</div>
-                    </div>
-                    <div style={{ fontSize: '1.75rem', fontWeight: 900, color: 'var(--teal-dark)' }}>
-                      ${fmt(breakdown.total / (parseFloat(quantity) || 1))}
-                    </div>
+                {/* Per-unit */}
+                <div style={{
+                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                  padding: '1.25rem 1.5rem',
+                  background: 'var(--surface)',
+                  border: '1px solid var(--border)',
+                  borderRadius: 'var(--radius-lg)',
+                  boxShadow: 'var(--shadow-xs)',
+                }}>
+                  <div>
+                    <div style={{ fontWeight: 600, fontSize: '0.9375rem' }}>Cost Per Unit</div>
+                    <div style={{ fontSize: '0.8125rem', color: 'var(--muted)' }}>{quantity} units total</div>
+                  </div>
+                  <div style={{ fontSize: '1.625rem', fontWeight: 800, color: 'var(--navy)', letterSpacing: '-0.04em' }}>
+                    ${fmt(result.total / qty)}
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-                  <button onClick={() => setBreakdown(null)} className="btn btn-outline" style={{ flex: 1 }}>
-                    <RefreshCw size={16} /> Reset
+                {/* Action buttons */}
+                <div style={{ display: 'flex', gap: '0.75rem' }}>
+                  <button onClick={reset} className="btn btn-outline" style={{ flex: 1 }}>
+                    <RefreshCw size={14} /> Reset
                   </button>
                   <Link href="/contact" className="btn btn-amber" style={{ flex: 1, justifyContent: 'center' }}>
-                    Get Official Quote <ArrowRight size={16} />
+                    Get Official Quote <ArrowRight size={14} />
                   </Link>
                 </div>
 
-                <div style={{ padding: '0.875rem 1.125rem', background: 'rgba(244,162,97,0.08)', border: '1px solid rgba(244,162,97,0.2)', borderRadius: 12, display: 'flex', gap: '0.5rem', alignItems: 'flex-start' }}>
-                  <Info size={15} color="#E07B39" style={{ marginTop: 2, flexShrink: 0 }} />
-                  <p style={{ fontSize: '0.8rem', color: '#9C4221', lineHeight: 1.6 }}>
-                    This is an estimate for planning purposes. Actual costs may vary based on current carrier rates, exchange rates, specific customs rulings, and tariff classification.
+                {/* Disclaimer */}
+                <div style={{
+                  display: 'flex', gap: '0.5rem', padding: '1rem',
+                  background: 'var(--bg)', borderRadius: 'var(--radius)',
+                  border: '1px solid var(--border)',
+                }}>
+                  <Info size={13} color="var(--muted)" style={{ marginTop: 2, flexShrink: 0 }} />
+                  <p style={{ fontSize: '0.75rem', margin: 0, lineHeight: 1.65, color: 'var(--muted)' }}>
+                    Estimates only. Actual costs vary with current carrier rates, FTA eligibility, and specific tariff rulings.
                   </p>
                 </div>
               </>

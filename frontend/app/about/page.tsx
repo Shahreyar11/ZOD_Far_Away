@@ -1,106 +1,128 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
-import {
-  Globe, Users, Award, TrendingUp, Shield, Clock,
-  MapPin, ArrowRight, CheckCircle2, Target, Zap, Heart,
-} from 'lucide-react';
+import { Globe, Award, CheckCircle2, ArrowRight, MapPin, Users, TrendingUp, Zap } from 'lucide-react';
 
-export const metadata: Metadata = { title: 'About Us' };
+export const metadata: Metadata = {
+  title: 'About Us — ZODFarAway',
+  description: 'Learn about ZODFarAway — our mission, team, and global presence in logistics.',
+};
 
-const stats = [
-  { value: '2015', label: 'Founded', icon: Clock },
-  { value: '150+', label: 'Countries', icon: Globe },
-  { value: '400+', label: 'Team Members', icon: Users },
-  { value: '99.2%', label: 'On-Time Rate', icon: TrendingUp },
+const STATS = [
+  { value: '2015', label: 'Founded' },
+  { value: '150+', label: 'Countries' },
+  { value: '400+', label: 'Team members' },
+  { value: '99.2%', label: 'On-time rate' },
 ];
 
-const values = [
-  { icon: Shield, color: '#00B4D8', title: 'Reliability', desc: 'We deliver on our promises — on time, every time. Our 99.2% on-time delivery record speaks for itself.' },
-  { icon: Target, color: '#F4A261', title: 'Precision', desc: 'Accurate HS classification, duty calculation, and documentation — zero margin for costly errors.' },
-  { icon: Zap, color: '#22C55E', title: 'Speed', desc: 'From quote to departure in hours. Our digital platform eliminates paperwork delays.' },
-  { icon: Heart, color: '#A78BFA', title: 'Customer First', desc: 'A dedicated account manager and 24/7 support team for every client, big or small.' },
+const VALUES = [
+  { icon: CheckCircle2, title: 'Reliability',   desc: '99.2% on-time delivery across 150+ countries. We deliver what we promise.', color: '#0066FF', bg: '#EBF2FF' },
+  { icon: Globe,        title: 'Transparency',  desc: 'Full upfront cost breakdown — no hidden fees, no duty surprises.',          color: '#0D9488', bg: '#EDFAF9' },
+  { icon: Zap,          title: 'Speed',         desc: 'Quote to departure in hours, not days. Our platform cuts out the paperwork.', color: '#7C3AED', bg: '#F5F3FF' },
+  { icon: Users,        title: 'Expertise',     desc: 'Licensed customs brokers, IATA-certified agents, and trade law specialists.', color: '#F59E0B', bg: '#FFFBEB' },
 ];
 
-const team = [
-  { name: 'Aisha Rahman', role: 'CEO & Co-Founder', location: 'Dubai, UAE', expertise: '20+ yrs in Freight' },
-  { name: 'Marcus Wong', role: 'CTO', location: 'Singapore', expertise: 'Supply Chain Tech' },
-  { name: 'Elena Petrov', role: 'Head of Customs', location: 'Rotterdam, NL', expertise: 'EU Trade Compliance' },
-  { name: 'James Okonkwo', role: 'Director, Africa Ops', location: 'Lagos, NG', expertise: 'African Trade Routes' },
-];
-
-const offices = [
-  { city: 'Dubai', country: 'UAE', type: 'HQ', flag: '🇦🇪' },
-  { city: 'London', country: 'UK', type: 'Regional HQ', flag: '🇬🇧' },
-  { city: 'Singapore', country: 'Singapore', type: 'Asia Pacific HQ', flag: '🇸🇬' },
-  { city: 'New York', country: 'USA', type: 'Americas HQ', flag: '🇺🇸' },
-  { city: 'Shanghai', country: 'China', type: 'Sourcing Hub', flag: '🇨🇳' },
-  { city: 'Lagos', country: 'Nigeria', type: 'Africa Hub', flag: '🇳🇬' },
-];
-
-const certs = [
+const CERTS = [
   'ISO 9001:2015 Quality Management',
-  'AEO (Authorised Economic Operator)',
-  'IATA Cargo Agent',
+  'AEO — Authorised Economic Operator',
+  'IATA Cargo Agent (certified)',
   'FIATA Member',
   'C-TPAT Certified (US)',
-  'SOLAS Compliant',
+  'SOLAS compliant',
+];
+
+const OFFICES = [
+  { city: 'Dubai', country: 'UAE', role: 'Global HQ', flag: '🇦🇪' },
+  { city: 'London', country: 'UK', role: 'EMEA HQ', flag: '🇬🇧' },
+  { city: 'Singapore', country: 'SG', role: 'APAC HQ', flag: '🇸🇬' },
+  { city: 'New York', country: 'US', role: 'Americas HQ', flag: '🇺🇸' },
+  { city: 'Shanghai', country: 'CN', role: 'Sourcing hub', flag: '🇨🇳' },
+  { city: 'Lagos', country: 'NG', role: 'Africa hub', flag: '🇳🇬' },
+];
+
+// TODO: API — Optionally load team members dynamically from CMS
+//   GET /api/team  →  { members: TeamMember[] }
+const TEAM = [
+  { name: 'Aisha Rahman',   role: 'CEO & Co-Founder',   location: 'Dubai, UAE',      color: '#0066FF' },
+  { name: 'Marcus Wong',    role: 'CTO',                location: 'Singapore',       color: '#0D9488' },
+  { name: 'Elena Petrov',   role: 'Head of Customs',    location: 'Rotterdam, NL',   color: '#7C3AED' },
+  { name: 'James Okonkwo',  role: 'Director, Africa',   location: 'Lagos, NG',       color: '#F59E0B' },
 ];
 
 export default function AboutPage() {
   return (
     <div style={{ background: 'var(--bg)' }}>
-      {/* Hero */}
-      <div style={{ background: 'linear-gradient(135deg, var(--navy) 0%, var(--navy-mid) 100%)', padding: '5rem 0 4rem', position: 'relative', overflow: 'hidden' }}>
-        <div className="glow-blob" style={{ width: 400, height: 400, background: '#00B4D8', top: '-100px', right: '-80px' }} />
-        <div className="container" style={{ position: 'relative', zIndex: 1 }}>
-          <div className="section-label"><Globe size={14} /> Our Story</div>
-          <h1 style={{ color: '#fff', maxWidth: 700, marginBottom: '1.25rem' }}>
-            Connecting the World, <span className="text-gradient">One Shipment</span> at a Time
+
+      {/* Page header */}
+      <div className="page-header">
+        <div className="container">
+          <div className="animate-fadeUp">
+            <div className="label">Our Story</div>
+          </div>
+          <h1 className="animate-fadeUp delay-1" style={{ marginBottom: '1rem' }}>
+            Connecting the world,<br />
+            <span className="text-gradient">one shipment at a time</span>
           </h1>
-          <p style={{ color: 'rgba(255,255,255,0.6)', maxWidth: 580, lineHeight: 1.8, fontSize: '1.0625rem', marginBottom: '2.5rem' }}>
-            Founded in 2015, ZODFarAway was built on a simple belief: international trade should be simple, transparent, and accessible to every business — not just the big players.
+          <p className="animate-fadeUp delay-2" style={{ maxWidth: 520, fontSize: '1.0625rem' }}>
+            Founded in 2015, ZODFarAway was built on a simple belief: international trade should be simple, transparent, and accessible to every business.
           </p>
-          <div style={{ display: 'flex', gap: '2.5rem', flexWrap: 'wrap' }}>
-            {stats.map(({ value, label, icon: Icon }) => (
-              <div key={label} style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: '2.5rem', fontWeight: 900, color: '#00B4D8', lineHeight: 1 }}>{value}</div>
-                <div style={{ fontSize: '0.8125rem', color: 'rgba(255,255,255,0.5)', marginTop: '0.25rem', fontWeight: 500 }}>{label}</div>
+        </div>
+      </div>
+
+      {/* Stats */}
+      <div style={{ background: 'var(--surface)', borderBottom: '1px solid var(--border)' }}>
+        <div className="container">
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))',
+          }}>
+            {STATS.map(({ value, label }, i) => (
+              <div key={label} className="stat-item" style={{
+                borderRight: i < STATS.length - 1 ? '1px solid var(--border)' : 'none',
+              }}>
+                <div className="stat-value">{value}</div>
+                <div className="stat-label">{label}</div>
               </div>
             ))}
           </div>
         </div>
       </div>
 
-      {/* Mission */}
-      <section className="section" style={{ background: '#fff' }}>
+      {/* Mission + certs */}
+      <section className="section" style={{ background: 'var(--surface)', borderBottom: '1px solid var(--border)' }}>
         <div className="container">
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '3rem', alignItems: 'center' }}>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+            gap: '3.5rem', alignItems: 'start',
+          }}>
             <div>
-              <div className="section-label"><Target size={14} /> Mission & Vision</div>
-              <h2 style={{ marginBottom: '1.25rem' }}>
-                Making Global Trade <span className="text-gradient">Frictionless</span>
-              </h2>
-              <p style={{ color: 'var(--text-secondary)', lineHeight: 1.8, marginBottom: '1.25rem' }}>
-                We built ZODFarAway because we saw how broken the logistics industry was — opaque pricing, buried paperwork, unexpected duty bills, and zero visibility. We set out to fix all of that.
+              <div className="label">Mission</div>
+              <h2 style={{ marginBottom: '1.25rem' }}>Making global trade frictionless</h2>
+              <p style={{ marginBottom: '1rem' }}>
+                We built ZODFarAway because we saw how broken logistics was — opaque pricing, unexpected duty bills, mountains of paperwork, and zero visibility.
               </p>
-              <p style={{ color: 'var(--text-secondary)', lineHeight: 1.8, marginBottom: '1.75rem' }}>
-                Today, our platform and team help over 10,000 businesses across 150 countries ship confidently — with upfront costs, accurate HS classifications, and real-time tracking from day one.
+              <p style={{ marginBottom: '2rem' }}>
+                Today our platform helps 10,000+ businesses in 150 countries ship confidently with upfront costs, accurate classification, and real-time tracking.
               </p>
-              <Link href="/contact" className="btn btn-primary">
-                Work With Us <ArrowRight size={16} />
+              <Link href="/contact" className="btn btn-blue">
+                Work with us <ArrowRight size={14} />
               </Link>
             </div>
 
             {/* Certifications */}
-            <div className="card" style={{ background: 'rgba(0,180,216,0.04)', border: '1px solid rgba(0,180,216,0.15)' }}>
-              <div style={{ fontWeight: 700, fontSize: '1rem', marginBottom: '1.25rem', color: 'var(--navy)' }}>
-                Certifications & Memberships
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                {certs.map(c => (
-                  <div key={c} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
-                    <Award size={16} color="#00B4D8" />
-                    {c}
+            <div className="card">
+              <h3 style={{ fontSize: '1rem', marginBottom: '1.25rem' }}>Certifications & Memberships</h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
+                {CERTS.map(c => (
+                  <div key={c} style={{
+                    display: 'flex', alignItems: 'center', gap: '0.75rem',
+                    fontSize: '0.875rem', color: 'var(--navy-2)',
+                    padding: '0.625rem 0.75rem',
+                    borderRadius: 'var(--radius)',
+                    background: 'var(--bg)',
+                    border: '1px solid var(--border)',
+                  }}>
+                    <Award size={14} color="var(--accent)" style={{ flexShrink: 0 }} /> {c}
                   </div>
                 ))}
               </div>
@@ -112,22 +134,23 @@ export default function AboutPage() {
       {/* Values */}
       <section className="section" style={{ background: 'var(--bg)' }}>
         <div className="container">
-          <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
-            <div className="section-label" style={{ justifyContent: 'center' }}><Heart size={14} /> Our Values</div>
-            <h2>What Drives <span className="text-gradient">Everything We Do</span></h2>
+          <div style={{ marginBottom: '3rem', textAlign: 'center' }}>
+            <div className="label" style={{ margin: '0 auto 1rem' }}>Our Values</div>
+            <h2>What drives everything we do</h2>
           </div>
           <div className="grid-4">
-            {values.map(({ icon: Icon, color, title, desc }) => (
+            {VALUES.map(({ icon: Icon, title, desc, color, bg }) => (
               <div key={title} className="card" style={{ textAlign: 'center' }}>
                 <div style={{
-                  width: 60, height: 60, borderRadius: 18,
-                  background: `${color}15`, margin: '0 auto 1.25rem',
+                  width: 52, height: 52, borderRadius: 'var(--radius-lg)',
+                  background: bg, border: `1px solid ${color}22`,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  margin: '0 auto 1.125rem',
                 }}>
-                  <Icon size={26} color={color} />
+                  <Icon size={22} color={color} />
                 </div>
-                <h3 style={{ fontSize: '1.0625rem', marginBottom: '0.625rem' }}>{title}</h3>
-                <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', lineHeight: 1.7 }}>{desc}</p>
+                <h4 style={{ marginBottom: '0.5rem', color: 'var(--navy)' }}>{title}</h4>
+                <p style={{ fontSize: '0.875rem', margin: 0 }}>{desc}</p>
               </div>
             ))}
           </div>
@@ -135,35 +158,32 @@ export default function AboutPage() {
       </section>
 
       {/* Team */}
-      <section className="section" style={{ background: '#fff' }}>
+      <section className="section" style={{ background: 'var(--surface)', borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)' }}>
         <div className="container">
-          <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
-            <div className="section-label" style={{ justifyContent: 'center' }}><Users size={14} /> Leadership</div>
-            <h2>Meet Our <span className="text-gradient">Leadership Team</span></h2>
+          <div style={{ marginBottom: '3rem', textAlign: 'center' }}>
+            <div className="label" style={{ margin: '0 auto 1rem' }}>Leadership</div>
+            <h2>Meet the team</h2>
           </div>
           <div className="grid-4">
-            {team.map(({ name, role, location, expertise }) => {
+            {TEAM.map(({ name, role, location, color }) => {
               const initials = name.split(' ').map(n => n[0]).join('');
-              const colors = ['#00B4D8', '#F4A261', '#A78BFA', '#22C55E'];
-              const color = colors[team.findIndex(t => t.name === name) % colors.length];
               return (
                 <div key={name} className="card" style={{ textAlign: 'center' }}>
                   <div style={{
-                    width: 72, height: 72, borderRadius: '50%',
-                    background: `linear-gradient(135deg, ${color}20, ${color}40)`,
-                    border: `2px solid ${color}40`,
+                    width: 64, height: 64, borderRadius: '50%',
+                    background: `${color}15`,
+                    border: `2px solid ${color}30`,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    margin: '0 auto 1rem',
-                    fontSize: '1.5rem', fontWeight: 800, color,
+                    margin: '0 auto 1.125rem',
+                    fontSize: '1.25rem', fontWeight: 800, color,
                   }}>
                     {initials}
                   </div>
-                  <div style={{ fontWeight: 700, fontSize: '1rem', marginBottom: '0.25rem' }}>{name}</div>
-                  <div style={{ fontSize: '0.8125rem', color, fontWeight: 600, marginBottom: '0.5rem' }}>{role}</div>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.375rem', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.375rem' }}>
-                    <MapPin size={12} /> {location}
+                  <div style={{ fontWeight: 700, marginBottom: '0.3rem', fontSize: '0.9375rem' }}>{name}</div>
+                  <div style={{ fontSize: '0.8125rem', color: 'var(--accent)', fontWeight: 600, marginBottom: '0.5rem' }}>{role}</div>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.3rem', fontSize: '0.8rem', color: 'var(--muted)' }}>
+                    <MapPin size={11} /> {location}
                   </div>
-                  <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{expertise}</div>
                 </div>
               );
             })}
@@ -171,20 +191,20 @@ export default function AboutPage() {
         </div>
       </section>
 
-      {/* Global offices */}
-      <section className="section" style={{ background: 'var(--navy)' }}>
+      {/* Offices */}
+      <section className="section" style={{ background: 'var(--bg)' }}>
         <div className="container">
-          <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
-            <div className="section-label" style={{ justifyContent: 'center' }}><Globe size={14} /> Global Presence</div>
-            <h2 style={{ color: '#fff' }}>Our <span className="text-gradient">Offices</span></h2>
+          <div style={{ marginBottom: '3rem', textAlign: 'center' }}>
+            <div className="label" style={{ margin: '0 auto 1rem' }}>Global Presence</div>
+            <h2>Our offices</h2>
           </div>
           <div className="grid-3">
-            {offices.map(({ city, country, type, flag }) => (
-              <div key={city} className="card-dark" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                <div style={{ fontSize: '2.5rem' }}>{flag}</div>
+            {OFFICES.map(({ city, country, role, flag }) => (
+              <div key={city} className="card-sm" style={{ display: 'flex', alignItems: 'center', gap: '1.125rem', background: 'var(--surface)' }}>
+                <span style={{ fontSize: '2.25rem' }}>{flag}</span>
                 <div>
-                  <div style={{ fontWeight: 700, fontSize: '1.0625rem', color: '#fff' }}>{city}, {country}</div>
-                  <div style={{ fontSize: '0.8125rem', color: 'var(--teal)', fontWeight: 600 }}>{type}</div>
+                  <div style={{ fontWeight: 700, fontSize: '0.9375rem', marginBottom: '0.2rem' }}>{city}, {country}</div>
+                  <div style={{ fontSize: '0.8125rem', color: 'var(--accent)', fontWeight: 600 }}>{role}</div>
                 </div>
               </div>
             ))}
@@ -193,20 +213,20 @@ export default function AboutPage() {
       </section>
 
       {/* CTA */}
-      <section style={{ background: 'linear-gradient(135deg, var(--teal-dark), var(--teal))', padding: '5rem 0' }}>
-        <div className="container" style={{ textAlign: 'center' }}>
-          <h2 style={{ color: '#fff', marginBottom: '1rem' }}>Join 10,000+ Businesses That Trust Us</h2>
-          <p style={{ color: 'rgba(255,255,255,0.8)', marginBottom: '2rem', maxWidth: 480, margin: '0 auto 2rem' }}>
-            Start shipping smarter today with ZODFarAway.
+      <section style={{ background: 'var(--gradient-hero)', padding: '6rem 0', position: 'relative', overflow: 'hidden' }}>
+        <div style={{
+          position: 'absolute', inset: 0,
+          background: 'radial-gradient(ellipse at 50% 0%, rgba(0,102,255,0.2) 0%, transparent 65%)',
+          pointerEvents: 'none',
+        }} />
+        <div className="container" style={{ textAlign: 'center', position: 'relative' }}>
+          <h2 style={{ color: '#fff', marginBottom: '1rem' }}>Join 10,000+ businesses</h2>
+          <p style={{ marginBottom: '2.5rem', maxWidth: 360, margin: '0 auto 2.5rem', color: 'rgba(255,255,255,0.6)' }}>
+            Start shipping smarter with ZODFarAway today.
           </p>
-          <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
-            <Link href="/contact" className="btn btn-amber" style={{ padding: '0.875rem 2rem' }}>
-              Get Started <ArrowRight size={16} />
-            </Link>
-            <Link href="/services" className="btn btn-ghost" style={{ padding: '0.875rem 2rem' }}>
-              Our Services
-            </Link>
-          </div>
+          <Link href="/contact" className="btn btn-amber btn-lg">
+            Get Started <ArrowRight size={16} />
+          </Link>
         </div>
       </section>
     </div>
