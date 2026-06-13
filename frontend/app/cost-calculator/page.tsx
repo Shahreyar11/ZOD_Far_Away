@@ -185,6 +185,15 @@ export default function CostCalculatorPage() {
       const newQuantity = parsed.quantity ? String(parsed.quantity) : '1';
       setQuantity(newQuantity);
 
+      const newProductValue = parsed.productValue ? String(parsed.productValue) : productValue;
+      if (parsed.productValue) setProductValue(newProductValue);
+
+      let newMode = mode;
+      if (parsed.mode && (parsed.mode === 'air' || parsed.mode === 'sea' || parsed.mode === 'road')) {
+        newMode = parsed.mode;
+        setMode(newMode);
+      }
+
       let newDest = destination;
       if (parsed.destination && COUNTRIES.includes(parsed.destination)) {
         newDest = parsed.destination;
@@ -200,7 +209,7 @@ export default function CostCalculatorPage() {
       // 3. Compute costs immediately
       setLoading(true);
       setTimeout(() => {
-        runCalculation(productValue, newWeight, newDest, activeHS, mode, withInsurance);
+        runCalculation(newProductValue, newWeight, newDest, activeHS, newMode, withInsurance);
         setLoading(false);
         const engine = parsed.isFallback ? 'Local Fallback' : 'Gemini AI';
         setAiSuccess(engine);

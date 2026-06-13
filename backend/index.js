@@ -256,6 +256,43 @@ function fallbackLocalParse(query) {
       weight = parseFloat(match[1]);
     }
   }
+
+  if (!quantityParsed) {
+    const qtyRegex = /(\d+)\s*(?:units|pcs|pieces|items|qty|quantity)\b/i;
+    const qtyMatch = lowercaseQuery.match(qtyRegex);
+    if (qtyMatch) {
+      quantity = parseInt(qtyMatch[1], 10);
+      quantityParsed = true;
+    } else {
+      // Check for "a [product]" or "an [product]" or "single [product]" which implies 1
+      if (/\b(?:a|an|single|one)\b/i.test(lowercaseQuery)) {
+        quantity = 1;
+      }
+    }
+  }
+
+  let mode = null;
+  if (/\b(?:air|plane|flight)\b/i.test(lowercaseQuery)) {
+    mode = 'air';
+  } else if (/\b(?:sea|ocean|ship|boat)\b/i.test(lowercaseQuery)) {
+    mode = 'sea';
+  } else if (/\b(?:road|truck|land|car)\b/i.test(lowercaseQuery)) {
+    mode = 'road';
+  }
+
+  let productValue = null;
+  const unitPriceRegex = /(?:each\s*(?:costing|cost|at|value|price)?\s*(?:of)?\s*\$?\s*(\d+(?:\.\d+)?)\s*(?:dollars?|usd)?\b)|(?:\$?\s*(\d+(?:\.\d+)?)\s*(?:dollars?|usd)?\s*each\b)/i;
+  const unitPriceMatch = lowercaseQuery.match(unitPriceRegex);
+  if (unitPriceMatch) {
+    const unitPrice = parseFloat(unitPriceMatch[1] || unitPriceMatch[2]);
+    productValue = quantity * unitPrice;
+  } else {
+    const totalValueRegex = /(?:total\s*(?:value|cost|price)?\s*(?:of)?\s*\$?\s*(\d+(?:\.\d+)?)\s*(?:dollars?|usd)?\b)|(?:(?:costing|cost|value|price)\s*(?:of)?\s*\$?\s*(\d+(?:\.\d+)?)\s*(?:dollars?|usd)?\b)/i;
+    const totalMatch = lowercaseQuery.match(totalValueRegex);
+    if (totalMatch) {
+      productValue = parseFloat(totalMatch[1] || totalMatch[2]);
+    }
+  }
   
   let product = query;
   
@@ -290,6 +327,10 @@ function fallbackLocalParse(query) {
     /\bwith\b/gi,
     /\bweighing\b/gi,
     /\bweight\b/gi,
+    /\b(?:going\s+)?by\s+(?:air|sea|road|ocean|truck|plane|ship|flight)\b/gi,
+    /\b(?:air|sea|road)\s+freight\b/gi,
+    /(?:each\s*(?:costing|cost|at|value|price)?\s*(?:of)?\s*\$?\s*\d+(?:\.\d+)?\s*(?:dollars?|usd)?\b)|(?:\$?\s*\d+(?:\.\d+)?\s*(?:dollars?|usd)?\s*each\b)/gi,
+    /(?:total\s*(?:value|cost|price)?\s*(?:of)?\s*\$?\s*\d+(?:\.\d+)?\s*(?:dollars?|usd)?\b)|(?:(?:costing|cost|value|price)\s*(?:of)?\s*\$?\s*\d+(?:\.\d+)?\s*(?:dollars?|usd)?\b)/gi,
     /(?:\b\d+\s*(?:x|\*|\s+))?\b\d+(?:\.\d+)?\s*(?:kg|kilograms?|kilo?s?)\b/gi,
     /\b\d+\s*(?:units|pcs|pieces|items|qty|quantity)\b/gi,
     /\b\d+\b/gi
@@ -309,19 +350,6 @@ function fallbackLocalParse(query) {
     }
     product = product.trim();
   }
-
-  if (!quantityParsed) {
-    const qtyRegex = /(\d+)\s*(?:units|pcs|pieces|items|qty|quantity)\b/i;
-    const qtyMatch = lowercaseQuery.match(qtyRegex);
-    if (qtyMatch) {
-      quantity = parseInt(qtyMatch[1], 10);
-    } else {
-      // Check for "a [product]" or "an [product]" or "single [product]" which implies 1
-      if (/\b(?:a|an|single|one)\b/i.test(lowercaseQuery)) {
-        quantity = 1;
-      }
-    }
-  }
   
   return {
     product: product || "goods",
@@ -329,6 +357,8 @@ function fallbackLocalParse(query) {
     origin,
     weight,
     quantity,
+    productValue,
+    mode,
     isFallback: true
   };
 }
@@ -372,6 +402,8 @@ app.post('/api/assistant/parse', async (req, res) => {
 Supported Countries: United States, United Kingdom, Germany, France, Japan, China, India, UAE, Saudi Arabia, Australia, Canada, Brazil, South Korea, Singapore, Netherlands, Italy, Spain, Mexico, Indonesia, South Africa.
 
 If the query specifies a quantity and a weight-per-unit (e.g., '7 5kg batteries' or '7 batteries, 5kg each'), calculate and return the total gross weight (quantity * weight-per-unit) as the weight.
+If the query specifies a unit price/cost (e.g., 'each costing 200 dollars'), calculate and return the total product value (quantity * unit price) as the productValue.
+Identify the preferred transport mode if mentioned (e.g., 'by air', 'ocean freight', 'by road').
 
 User Query: "${query}"`
                   }
@@ -402,6 +434,14 @@ User Query: "${query}"`
                   quantity: {
                     type: "number",
                     description: "The number of units or quantity of items being shipped. Defaults to 1 if not explicitly mentioned otherwise."
+                  },
+                  productValue: {
+                    type: "number",
+                    description: "The total FOB product value of the shipment in USD (numeric only), or null if not specified. If query specifies a unit price (e.g. 'each costing 200 dollars'), you must calculate and return the total value (quantity * unit price)."
+                  },
+                  mode: {
+                    type: "string",
+                    description: "The preferred mode of transport, which must be exactly one of: 'air', 'sea', 'road', or null if not specified."
                   }
                 },
                 required: ["product"]
@@ -438,6 +478,8 @@ User Query: "${query}"`
         origin: parsedResult.origin || null,
         weight: parsedResult.weight || null,
         quantity: parsedResult.quantity || 1,
+        productValue: parsedResult.productValue || null,
+        mode: parsedResult.mode || null,
         isFallback: false
       });
 
