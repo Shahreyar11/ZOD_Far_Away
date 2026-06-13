@@ -10,6 +10,7 @@ const NAV_LINKS = [
   { href: '/hs-codes',        label: 'HS Codes' },
   { href: '/supply-chain',    label: 'Supply Chain' },
   { href: '/cost-calculator', label: 'Cost Calculator' },
+  { href: '/route-optimization', label: 'Route Optimizer' },
   { href: '/services',        label: 'Services' },
   { href: '/about',           label: 'About' },
 ];

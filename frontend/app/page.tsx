@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
-import { ArrowRight, Search, Globe, Calculator, Truck, ChevronRight, TrendingUp, Shield, Clock } from 'lucide-react';
+import { ArrowRight, Search, Globe, Calculator, Truck, ChevronRight, TrendingUp, Shield, Clock, Route } from 'lucide-react';
 import HSSearchBar from '../components/HSSearchBar';
 
 export const metadata: Metadata = {
@@ -39,6 +39,14 @@ const FEATURES = [
     href: '/cost-calculator',
     color: '#7C3AED',
     bg: '#F5F3FF',
+  },
+  {
+    icon: Route,
+    title: 'Route Optimizer',
+    desc: 'Traffic-aware routing via OSRM/OpenRouteService plus live road, port, air cargo, and border congestion checks.',
+    href: '/route-optimization',
+    color: '#DC2626',
+    bg: '#FEF2F2',
   },
   {
     icon: Truck,
