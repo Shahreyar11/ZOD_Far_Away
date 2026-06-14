@@ -14,7 +14,7 @@
 const ORS_API_KEY = process.env.OPENROUTESERVICE_API_KEY;
 const GOOGLE_MAPS_KEY = process.env.GOOGLE_MAPS_API_KEY;
 const MAPBOX_TOKEN = process.env.MAPBOX_ACCESS_TOKEN;
-const HERE_API_KEY = process.env.HERE_API_KEY;
+// const HERE_API_KEY = process.env.HERE_API_KEY;
 const AVIATIONSTACK_KEY = process.env.AVIATIONSTACK_API_KEY;
 const MARINETRAFFIC_KEY = process.env.MARINETRAFFIC_API_KEY;
 
@@ -747,7 +747,7 @@ async function optimizeRoute({ origin, destination, modes = ['road', 'port', 'ai
       openRouteService: !!ORS_API_KEY,
       googleMaps: !!GOOGLE_MAPS_KEY,
       mapbox: !!MAPBOX_TOKEN,
-      here: !!HERE_API_KEY,
+      // here: !!HERE_API_KEY,
       aviationStack: !!AVIATIONSTACK_KEY,
       marineTraffic: !!MARINETRAFFIC_KEY,
     },

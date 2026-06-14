@@ -71,7 +71,7 @@ const MODES: CongestionCard[] = [
   { mode: "road", label: "Road Traffic", icon: Truck, color: "#7C3AED", bg: "#F5F3FF" },
   { mode: "port", label: "Port Congestion", icon: Ship, color: "#0D9488", bg: "#EDFAF9" },
   { mode: "air", label: "Air Cargo", icon: Plane, color: "#0066FF", bg: "#EBF2FF" },
-  { mode: "border", label: "Border Wait", icon: Shield, color: "#DC2626", bg: "#FEF2F2" },
+  // { mode: "border", label: "Border Wait", icon: Shield, color: "#DC2626", bg: "#FEF2F2" },
 ];
 
 const LEVEL_LABELS: Record<string, string> = {
@@ -171,7 +171,7 @@ export default function RouteOptimizationPage() {
             Enter source and destination to get real road routing via OSRM, plus live checks for
             road, port, air cargo, and border congestion.
           </p>
-          <div className="animate-fadeUp delay-3" style={{ display: "flex", gap: "1rem", marginTop: "1.25rem", flexWrap: "wrap" }}>
+          {/* <div className="animate-fadeUp delay-3" style={{ display: "flex", gap: "1rem", marginTop: "1.25rem", flexWrap: "wrap" }}>
             {["OSRM Routing", "CBP Border API", "Port & Air Intel"].map((tag) => (
               <span key={tag} style={{
                 fontSize: "0.8rem", fontWeight: 600, color: "var(--accent)",
@@ -181,7 +181,7 @@ export default function RouteOptimizationPage() {
                 {tag}
               </span>
             ))}
-          </div>
+          </div> */}
         </div>
       </div>
 
