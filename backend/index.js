@@ -249,15 +249,15 @@ function fallbackLocalParse(query) {
     quantity = parseInt(qtyWeightMatch[1], 10);
     quantityParsed = true;
   } else {
-    // Check separate quantity suffix
-    const qtyRegex = /(\d+)\s*(?:units|pcs|pieces|items|qty|quantity)\b/i;
+    // Check separate quantity suffix or prefix: "quantity is 40" or "40 units"
+    const qtyRegex = /(?:(\d+)\s*(?:units|pcs|pieces|items|qty|quantity|units?)\b)|(?:\b(?:quantity|qty|units?)\s*(?:is|of|:)?\s*(\d+)\b)/i;
     const qtyMatch = lowercaseQuery.match(qtyRegex);
     if (qtyMatch) {
-      quantity = parseInt(qtyMatch[1], 10);
+      quantity = parseInt(qtyMatch[1] || qtyMatch[2], 10);
       quantityParsed = true;
     } else {
       // Check isolated leading quantity, e.g. "export 40 batteries"
-      const leadingQtyRegex = /\b(?:export|import|ship|send)\s+(\d+)\b/i;
+      const leadingQtyRegex = /\b(?:export|import|ship|send|transport)\s+(\d+)\b/i;
       const leadingQtyMatch = lowercaseQuery.match(leadingQtyRegex);
       if (leadingQtyMatch) {
         quantity = parseInt(leadingQtyMatch[1], 10);
@@ -295,9 +295,9 @@ function fallbackLocalParse(query) {
   let mode = null;
   if (/\b(?:air|plane|flight)\b/i.test(lowercaseQuery)) {
     mode = 'air';
-  } else if (/\b(?:sea|ocean|ship|boat)\b/i.test(lowercaseQuery)) {
+  } else if (/\b(?:sea|ocean|ship|boat|vessel)\b/i.test(lowercaseQuery)) {
     mode = 'sea';
-  } else if (/\b(?:road|truck|land|car)\b/i.test(lowercaseQuery)) {
+  } else if (/\b(?:road|truck|land|car|trucking)\b/i.test(lowercaseQuery)) {
     mode = 'road';
   }
 
@@ -321,53 +321,72 @@ function fallbackLocalParse(query) {
     productValue = quantity * unitPrice;
   }
   
-  let product = query;
+  // 5. Extract Product Name (context-aware extraction)
+  let product = null;
   
-  for (const country of SUPPORTED_COUNTRIES) {
-    const reg = new RegExp(`\\b${country}\\b`, 'gi');
-    product = product.replace(reg, '');
+  // Find "cargo: [product]" or "commodity: [product]" or "product: [product]"
+  const cargoMatch = lowercaseQuery.match(/\b(?:cargo|commodity|product|item)\s*(?:is|:)?\s*([a-z\s]+?)(?:$|\.|\,|\b(?:to|from|with|weighing|quantity|qty|each|costing|at|going|by|\d)\b)/i);
+  if (cargoMatch) {
+    product = cargoMatch[1].trim();
   }
   
-  const noisePhrases = [
-    /i want to export/gi,
-    /i want to import/gi,
-    /i want to ship/gi,
-    /i want to send/gi,
-    /please export/gi,
-    /please ship/gi,
-    /please send/gi,
-    /how to export/gi,
-    /exporting/gi,
-    /importing/gi,
-    /export/gi,
-    /import/gi,
-    /shipment/gi,
-    /shipping/gi,
-    /ship/gi,
-    /send/gi,
-    /\bto\b/gi,
-    /\bfrom\b/gi,
-    /\bof\b/gi,
-    /\ba\b/gi,
-    /\ban\b/gi,
-    /\bthe\b/gi,
-    /\bwith\b/gi,
-    /\bweighing\b/gi,
-    /\bweight\b/gi,
-    /\b(?:going\s+)?by\s+(?:air|sea|road|ocean|truck|plane|ship|flight)\b/gi,
-    /\b(?:air|sea|road)\s+freight\b/gi,
-    /(?:each\s*(?:costing|cost|at|value|price)?\s*(?:of)?\s*\$?\s*\d+(?:\.\d+)?\s*(?:dollars?|usd)?\b)|(?:\$?\s*\d+(?:\.\d+)?\s*(?:dollars?|usd)?\s*each\b)/gi,
-    /(?:total\s*(?:value|cost|price)?\s*(?:of)?\s*\$?\s*\d+(?:\.\d+)?\s*(?:dollars?|usd)?\b)|(?:(?:costing|cost|value|price)\s*(?:of)?\s*\$?\s*\d+(?:\.\d+)?\s*(?:dollars?|usd)?\b)/gi,
-    /(?:\b\d+\s*(?:x|\*|\s+))?\b\d+(?:\.\d+)?\s*(?:kg|kilograms?|kilo?s?)\b/gi,
-    /\b\d+\s*(?:units|pcs|pieces|items|qty|quantity)\b/gi,
-    /\b\d+\b/gi
-  ];
-  
-  for (const phrase of noisePhrases) {
-    product = product.replace(phrase, '');
+  // Find "export/import/ship [product]" or "export/import/ship [quantity] [product]"
+  if (!product) {
+    const exportMatch = lowercaseQuery.match(/\b(?:export|import|ship|send|transport)\s+(?:\d+\s*(?:x|\*|\s+)?\s*\d+(?:\.\d+)?\s*(?:kg|kilograms?|kilo?s?|units?|pcs|pieces)?\s+)?([a-z\s]+?)(?:$|\.|\,|\b(?:to|from|with|weighing|quantity|qty|each|costing|at|going|by|\d)\b)/i);
+    if (exportMatch) {
+      product = exportMatch[1].trim();
+    }
   }
-  
-  product = product.replace(/\s+/g, ' ').trim();
+
+  // Fallback to basic noise replacement if context-aware matcher fails
+  if (!product) {
+    product = query;
+    for (const country of SUPPORTED_COUNTRIES) {
+      const reg = new RegExp(`\\b${country}\\b`, 'gi');
+      product = product.replace(reg, '');
+    }
+    
+    const noisePhrases = [
+      /i want to export/gi,
+      /i want to import/gi,
+      /i want to ship/gi,
+      /i want to send/gi,
+      /please export/gi,
+      /please ship/gi,
+      /please send/gi,
+      /how to export/gi,
+      /exporting/gi,
+      /importing/gi,
+      /export/gi,
+      /import/gi,
+      /shipment/gi,
+      /shipping/gi,
+      /ship/gi,
+      /send/gi,
+      /\bto\b/gi,
+      /\bfrom\b/gi,
+      /\bof\b/gi,
+      /\ba\b/gi,
+      /\ban\b/gi,
+      /\bthe\b/gi,
+      /\bwith\b/gi,
+      /\bweighing\b/gi,
+      /\bweight\b/gi,
+      /\b(?:going\s+)?by\s+(?:air|sea|road|ocean|truck|plane|ship|flight)\b/gi,
+      /\b(?:air|sea|road)\s+freight\b/gi,
+      /(?:each\s*(?:costing|cost|at|value|price)?\s*(?:of)?\s*\$?\s*\d+(?:\.\d+)?\s*(?:dollars?|usd)?\b)|(?:\$?\s*\d+(?:\.\d+)?\s*(?:dollars?|usd)?\s*each\b)/gi,
+      /(?:total\s*(?:value|cost|price)?\s*(?:of)?\s*\$?\s*\d+(?:\.\d+)?\s*(?:dollars?|usd)?\b)|(?:(?:costing|cost|value|price)\s*(?:of)?\s*\$?\s*\d+(?:\.\d+)?\s*(?:dollars?|usd)?\b)/gi,
+      /(?:\b\d+\s*(?:x|\*|\s+))?\b\d+(?:\.\d+)?\s*(?:kg|kilograms?|kilo?s?)\b/gi,
+      /\b\d+\s*(?:units|pcs|pieces|items|qty|quantity)\b/gi,
+      /\b\d+\b/gi
+    ];
+    
+    for (const phrase of noisePhrases) {
+      product = product.replace(phrase, '');
+    }
+    
+    product = product.replace(/\s+/g, ' ').trim();
+  }
   
   if (!product) {
     product = query;
@@ -425,10 +444,24 @@ app.post('/api/assistant/parse', async (req, res) => {
               {
                 parts: [
                   {
-                    text: `Analyze the user's shipping query and extract raw logistics entities. Match countries to our supported list.
-Supported Countries: United States, United Kingdom, Germany, France, Japan, China, India, UAE, Saudi Arabia, Australia, Canada, Brazil, South Korea, Singapore, Netherlands, Italy, Spain, Mexico, Indonesia, South Africa.
+                    text: `You are an expert logistics parser. Analyze the user's shipping query and extract raw logistics entities.
+The query can be in any style, format, or order: conversational (e.g. "I want to ship..."), bullet points, key-value specs, shorthand, or unstructured notes.
 
-Identify quantity, unit weight, total weight, unit price, total price, and transportation mode from the query. Do NOT guess or hallucinate any fields if they are not specified.
+SUPPORTED COUNTRIES:
+Only match origin/destination countries to this exact list:
+United States, United Kingdom, Germany, France, Japan, China, India, UAE, Saudi Arabia, Australia, Canada, Brazil, South Korea, Singapore, Netherlands, Italy, Spain, Mexico, Indonesia, South Africa.
+Return null for country fields if not specified or not in this list.
+
+EXTRACTION INSTRUCTIONS:
+1. 'product': Extract the name of the product/commodity being shipped (e.g. 'batteries', 'laptops').
+2. 'quantity': Extract the total quantity/units of items. Default to 1 if not mentioned.
+3. 'unitWeight': Extract the weight of a SINGLE unit in kilograms (e.g. for "40 30kg batteries", unitWeight is 30). Return null if not specified.
+4. 'totalWeight': Extract the total gross weight of the entire shipment in kilograms if explicitly specified as total. Return null if not specified.
+5. 'unitPrice': Extract the unit price in USD (e.g. for "each costing 200 dollars", unitPrice is 200). Return null if not specified.
+6. 'totalPrice': Extract the total cost/value of the shipment in USD if explicitly specified. Return null if not specified.
+7. 'mode': Extract preferred mode of transport: 'air' (for air, plane, flight), 'sea' (for sea, ocean, ship, vessel), 'road' (for road, truck, trucking). Return null if not mentioned.
+
+DO NOT hallucinate, guess, or assume any values for weights, prices, or modes if they are not explicitly present in the query.
 
 User Query: "${query}"`
                   }
@@ -507,14 +540,18 @@ User Query: "${query}"`
       }
 
       const quantity = parsedResult.quantity || 1;
-      let weight = parsedResult.totalWeight || null;
-      if (!weight && parsedResult.unitWeight) {
+      let weight = null;
+      if (parsedResult.unitWeight) {
         weight = quantity * parsedResult.unitWeight;
+      } else {
+        weight = parsedResult.totalWeight || null;
       }
 
-      let productValue = parsedResult.totalPrice || null;
-      if (!productValue && parsedResult.unitPrice) {
+      let productValue = null;
+      if (parsedResult.unitPrice) {
         productValue = quantity * parsedResult.unitPrice;
+      } else {
+        productValue = parsedResult.totalPrice || null;
       }
 
       const finalResponse = {
