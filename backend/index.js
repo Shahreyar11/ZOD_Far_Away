@@ -611,6 +611,12 @@ const hsScanRouter = require('./features/hs-scan/hsScanRoute');
 app.use('/api/hs-scan', hsScanRouter);
 
 const PORT = process.env.PORT || 5001;
+app.get('/', (req, res) => {
+  res.json({
+    status: 'Backend is running',
+    success: true
+  });
+});
 app.listen(PORT, () => {
   console.log(`Backend server running on port ${PORT}`);
 });
