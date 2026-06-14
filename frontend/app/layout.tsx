@@ -12,14 +12,14 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: {
-    template: '%s | ZODFarAway — Global Logistics',
-    default: 'ZODFarAway — Global Logistics & Supply Chain',
+    template: '%s | FreightWise — Global Logistics',
+    default: 'FreightWise — Global Logistics & Supply Chain',
   },
   description:
     'End-to-end supply chain solutions. HS code lookup, cost & duty calculator, freight management, and real-time tracking — all in one platform.',
   keywords: ['logistics', 'supply chain', 'HS codes', 'freight', 'customs', 'shipping', 'duty calculator'],
   openGraph: {
-    title: 'ZODFarAway — Global Logistics',
+    title: 'FreightWise — Global Logistics',
     description: 'From concept to delivery — your complete logistics partner.',
     type: 'website',
   },
