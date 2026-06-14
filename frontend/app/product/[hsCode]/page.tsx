@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { Loader2, ArrowLeft, Globe, AlertTriangle, FileText, CheckCircle2, ShieldAlert, Package, TrendingUp, Truck, DollarSign } from 'lucide-react';
 import {
   PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip,
@@ -66,6 +66,12 @@ export default function ProductDetailPage() {
   const [destLoading, setDestLoading] = useState(false);
   const [comparisonData, setComparisonData] = useState<any[]>([]);
 
+  // Pre-fill destination if the AI assistant passed it via URL ?destination=Germany
+  const searchParams = useSearchParams();
+  useEffect(() => {
+    const dest = searchParams.get('destination');
+    if (dest) setDestination(dest);
+  }, [searchParams]);
   useEffect(() => {
     fetch(`http://localhost:5000/api/product/${hsCode}/intelligence`)
       .then(r => r.json())

@@ -1,8 +1,9 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Calculator, ArrowRight, Info, RefreshCw, Plane, Ship, Truck } from 'lucide-react';
+import { Calculator, ArrowRight, Info, RefreshCw, Plane, Ship, Truck, Sparkles } from 'lucide-react';
 
 // ─────────────────────────────────────────────────────────────
 // TYPES
@@ -62,36 +63,172 @@ export default function CostCalculatorPage() {
   const [quantity,     setQuantity]     = useState('100');
   const [origin,       setOrigin]       = useState('China');
   const [destination,  setDestination]  = useState('United Kingdom');
+  const [hsOptions,    setHsOptions]    = useState(HS_EXAMPLES);
   const [selectedHS,   setSelectedHS]   = useState(HS_EXAMPLES[0]);
   const [mode,         setMode]         = useState<FreightMode>('sea');
   const [withInsurance,setInsurance]    = useState(true);
   const [result,       setResult]       = useState<CostBreakdown | null>(null);
   const [loading,      setLoading]      = useState(false);
 
-  // TODO: API — Replace this entire function with a backend call:
-  //   POST /api/calculate-landed-cost
-  //   with hsCode, productValue, weightKg, quantity, origin, destination, freightMode, includeInsurance
+  // AI Assistant filling states
+  const [aiPrompt,     setAiPrompt]     = useState('');
+  const [aiLoading,    setAiLoading]    = useState(false);
+  const [aiError,      setAiError]      = useState('');
+  const [aiSuccess,    setAiSuccess]    = useState(false);
+  const [geminiAvailable, setGeminiAvailable] = useState<boolean | null>(null);
+
+  // Fetch status on mount
+  useEffect(() => {
+    fetch('http://localhost:5000/api/assistant/status')
+      .then(res => res.json())
+      .then(data => setGeminiAvailable(data.geminiAvailable))
+      .catch(err => {
+        console.error('Failed to fetch assistant status:', err);
+        setGeminiAvailable(false);
+      });
+  }, []);
+
+  function runCalculation(
+    pvStr: string,
+    weightStr: string,
+    dest: string,
+    hs: typeof HS_EXAMPLES[0],
+    fMode: FreightMode,
+    ins: boolean
+  ) {
+    const pv  = parseFloat(pvStr) || 0;
+    const wt  = parseFloat(weightStr)       || 0;
+    const r   = FREIGHT_RATES[fMode];
+
+    const freightCost    = Math.max(r.minUSD, wt * r.ratePerKg);
+    const insuranceCost  = ins ? pv * 0.012 : 0;
+    const cif            = pv + freightCost + insuranceCost;
+    const importDuty     = cif * (hs.duty / 100);
+    const vat            = (cif + importDuty) * ((VAT_RATES[dest] ?? 0) / 100);
+    const brokerageFee   = 180 + cif * 0.003;
+    const total          = pv + freightCost + insuranceCost + importDuty + vat + brokerageFee;
+
+    setResult({ productValue: pv, freightCost, insuranceCost, cif, importDuty, vat, brokerageFee, total });
+  }
+
   function calculate() {
     setLoading(true);
     setTimeout(() => {
-      const pv  = parseFloat(productValue) || 0;
-      const wt  = parseFloat(weight)       || 0;
-      const r   = FREIGHT_RATES[mode];
-
-      const freightCost    = Math.max(r.minUSD, wt * r.ratePerKg);
-      const insuranceCost  = withInsurance ? pv * 0.012 : 0;
-      const cif            = pv + freightCost + insuranceCost;
-      const importDuty     = cif * (selectedHS.duty / 100);
-      const vat            = (cif + importDuty) * ((VAT_RATES[destination] ?? 0) / 100);
-      const brokerageFee   = 180 + cif * 0.003;
-      const total          = pv + freightCost + insuranceCost + importDuty + vat + brokerageFee;
-
-      setResult({ productValue: pv, freightCost, insuranceCost, cif, importDuty, vat, brokerageFee, total });
+      runCalculation(productValue, weight, destination, selectedHS, mode, withInsurance);
       setLoading(false);
     }, 500);
   }
 
-  function reset() { setResult(null); }
+  const handleAiQuickFill = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!aiPrompt.trim() || aiLoading) return;
+
+    setAiLoading(true);
+    setAiError('');
+    setAiSuccess(false);
+
+    try {
+      // 1. Fetch parser response
+      const parseRes = await fetch('http://localhost:5000/api/assistant/parse', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: aiPrompt })
+      });
+
+      if (!parseRes.ok) throw new Error('AI parser request failed');
+      const parsed = await parseRes.json();
+
+      // 2. Lookup parsed product code semantically
+      const searchRes = await fetch(`http://localhost:5000/api/search?q=${encodeURIComponent(parsed.product)}`);
+      if (!searchRes.ok) throw new Error('Product search request failed');
+      const searchData = await searchRes.json();
+
+      const searchResults = searchData.results || [];
+      let activeHS = selectedHS;
+
+      if (searchResults.length > 0) {
+        const firstResult = searchResults[0];
+        const newOption = {
+          code: firstResult.hsn8Digit || firstResult.hsn4Digit || 'GENERIC',
+          label: firstResult.productName,
+          duty: parseFloat(firstResult.gstRate) || 5.0
+        };
+
+        setHsOptions(prev => {
+          if (!prev.some(h => h.code === newOption.code)) {
+            return [newOption, ...prev];
+          }
+          return prev;
+        });
+        activeHS = newOption;
+        setSelectedHS(newOption);
+      } else {
+        const fallbackOption = {
+          code: 'GENERIC',
+          label: parsed.product,
+          duty: 5.0
+        };
+        setHsOptions(prev => {
+          if (!prev.some(h => h.code === fallbackOption.code)) {
+            return [fallbackOption, ...prev];
+          }
+          return prev;
+        });
+        activeHS = fallbackOption;
+        setSelectedHS(fallbackOption);
+      }
+
+      // Update forms
+      const newWeight = parsed.weight ? String(parsed.weight) : weight;
+      if (parsed.weight) setWeight(newWeight);
+
+      const newQuantity = parsed.quantity ? String(parsed.quantity) : '1';
+      setQuantity(newQuantity);
+
+      const newProductValue = parsed.productValue ? String(parsed.productValue) : productValue;
+      if (parsed.productValue) setProductValue(newProductValue);
+
+      let newMode = mode;
+      if (parsed.mode && (parsed.mode === 'air' || parsed.mode === 'sea' || parsed.mode === 'road')) {
+        newMode = parsed.mode;
+        setMode(newMode);
+      }
+
+      let newDest = destination;
+      if (parsed.destination && COUNTRIES.includes(parsed.destination)) {
+        newDest = parsed.destination;
+        setDestination(newDest);
+      }
+
+      let newOrigin = origin;
+      if (parsed.origin && COUNTRIES.includes(parsed.origin)) {
+        newOrigin = parsed.origin;
+        setOrigin(newOrigin);
+      }
+
+      // 3. Compute costs immediately
+      setLoading(true);
+      setTimeout(() => {
+        runCalculation(newProductValue, newWeight, newDest, activeHS, newMode, withInsurance);
+        setLoading(false);
+        const engine = parsed.isFallback ? 'Local Fallback' : 'Gemini AI';
+        setAiSuccess(engine);
+      }, 500);
+
+    } catch (err) {
+      console.error(err);
+      setAiError('Assistant failed to process query. Try standard entries.');
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  function reset() { 
+    setResult(null); 
+    setAiPrompt('');
+    setAiSuccess(false);
+    setAiError('');
+  }
 
   const qty = parseFloat(quantity) || 1;
   const modeData = FREIGHT_RATES[mode];
@@ -117,6 +254,89 @@ export default function CostCalculatorPage() {
 
           {/* ── Input form ─────────────────────────────────────── */}
           <div className="card">
+            {/* AI Assistant Quick Fill Panel */}
+            <div style={{
+              background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
+              borderRadius: 'var(--radius-lg)',
+              padding: '1.25rem',
+              marginBottom: '1.75rem',
+              border: '1px solid rgba(255, 255, 255, 0.08)',
+              boxShadow: '0 4px 20px rgba(13,27,42,0.15)',
+              color: '#fff',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', marginBottom: '0.625rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  <Sparkles size={14} color="#60a5fa" />
+                  <span style={{ fontSize: '0.8rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#93c5fd' }}>
+                    AI Quick Fill
+                  </span>
+                </div>
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: '0.3rem',
+                  fontSize: '0.7rem', fontWeight: 600,
+                  background: 'rgba(255,255,255,0.06)',
+                  padding: '0.15rem 0.5rem', borderRadius: 'var(--radius-pill)',
+                  border: '1px solid rgba(255,255,255,0.1)',
+                }}>
+                  <span style={{
+                    display: 'inline-block', width: 5, height: 5, borderRadius: '50%',
+                    background: geminiAvailable === null ? '#94a3b8' : (geminiAvailable ? '#10b981' : '#f59e0b'),
+                    transition: 'background 0.3s'
+                  }} />
+                  <span style={{ color: 'rgba(255,255,255,0.7)' }}>
+                    {geminiAvailable === null ? 'Checking Status...' : (geminiAvailable ? 'Gemini AI' : 'Local Fallback')}
+                  </span>
+                </div>
+              </div>
+              <form onSubmit={handleAiQuickFill} style={{ display: 'flex', gap: '0.5rem' }}>
+                <input
+                  type="text"
+                  placeholder="e.g. export leather wallets from India to Germany 75kg"
+                  value={aiPrompt}
+                  onChange={e => setAiPrompt(e.target.value)}
+                  style={{
+                    flex: 1,
+                    background: 'rgba(255, 255, 255, 0.08)',
+                    border: '1px solid rgba(255, 255, 255, 0.15)',
+                    borderRadius: 'var(--radius)',
+                    padding: '0.5rem 0.75rem',
+                    color: '#fff',
+                    fontSize: '0.8125rem',
+                    outline: 'none',
+                    fontFamily: 'Inter, sans-serif'
+                  }}
+                />
+                <button
+                  type="submit"
+                  disabled={aiLoading || !aiPrompt.trim()}
+                  style={{
+                    background: 'var(--accent)',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: 'var(--radius)',
+                    padding: '0.5rem 1rem',
+                    fontSize: '0.8rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap',
+                    opacity: aiPrompt.trim() ? 1 : 0.6,
+                  }}
+                >
+                  {aiLoading ? 'Filing...' : 'Apply'}
+                </button>
+              </form>
+              {aiError && (
+                <div style={{ color: '#fca5a5', fontSize: '0.75rem', marginTop: '0.5rem', fontWeight: 500 }}>
+                  ⚠️ {aiError}
+                </div>
+              )}
+              {aiSuccess && (
+                <div style={{ color: '#86efac', fontSize: '0.75rem', marginTop: '0.5rem', fontWeight: 600 }}>
+                  ✨ Fields successfully pre-filled & calculated via {aiSuccess}!
+                </div>
+              )}
+            </div>
+
             <h2 style={{ fontSize: '1.0625rem', marginBottom: '1.75rem', paddingBottom: '1rem', borderBottom: '1px solid var(--border)' }}>
               Shipment Details
             </h2>
@@ -126,10 +346,9 @@ export default function CostCalculatorPage() {
               {/* HS Code */}
               <div>
                 <label>Product / HS Code</label>
-                {/* TODO: API — Replace with searchable input using GET /api/hs-codes?q=<query> */}
                 <select className="input select" value={selectedHS.code}
-                  onChange={e => setSelectedHS(HS_EXAMPLES.find(h => h.code === e.target.value)!)}>
-                  {HS_EXAMPLES.map(h => (
+                  onChange={e => setSelectedHS(hsOptions.find(h => h.code === e.target.value)!)}>
+                  {hsOptions.map(h => (
                     <option key={h.code} value={h.code}>{h.code} — {h.label}</option>
                   ))}
                 </select>

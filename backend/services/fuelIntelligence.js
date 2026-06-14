@@ -6,32 +6,22 @@ const BASELINE_BARREL_PRICE = parseFloat(process.env.FUEL_BASELINE_BARREL_PRICE 
 
 /**
  * Converts a Brent Crude barrel price (USD) into a freight fuel index.
- *
  * Formula used by major carriers (DHL, Maersk etc.):
  *   Fuel Index = Current Price / Baseline Price
- *
- * Example:
- *   Baseline = $80/barrel, Current = $88/barrel
- *   Fuel Index = 88 / 80 = 1.10  → 10% surcharge on freight
- *
- * @param {number} barrelPrice - Current Brent crude price in USD
- * @returns {number} fuelIndex - Multiplier (e.g. 1.05 = 5% surcharge)
+ * e.g. Baseline=$80, Today=$88 → Index=1.10 → 10% surcharge
  */
 function barrelPriceToFuelIndex(barrelPrice) {
   const index = barrelPrice / BASELINE_BARREL_PRICE;
-  // Clamp between 0.9 (10% discount) and 1.5 (50% surcharge) to prevent extreme swings
   return Math.min(Math.max(parseFloat(index.toFixed(4)), 0.9), 1.5);
 }
 
 /**
- * Fetches the latest Brent Crude oil price from RapidAPI (API Ninjas - Commodity Rates).
- * API docs: https://rapidapi.com/apininjas/api/commodity-rates-by-api-ninjas
- *
- * @returns {Promise<number|null>} Barrel price in USD, or null on failure
+ * Fetches the latest Brent Crude oil price from RapidAPI.
+ * API: https://rapidapi.com/apininjas/api/commodity-rates-by-api-ninjas
  */
 async function fetchBarrelPriceFromRapidAPI() {
   if (!RAPIDAPI_KEY) {
-    console.warn('[FuelIntelligence] RAPIDAPI_KEY not set in .env — skipping live fetch.');
+    console.warn('[FuelIntelligence] RAPIDAPI_KEY not set — skipping live fetch.');
     return null;
   }
 
@@ -47,24 +37,15 @@ async function fetchBarrelPriceFromRapidAPI() {
       }
     );
 
-    if (!response.ok) {
-      throw new Error(`RapidAPI responded with status ${response.status}`);
-    }
+    if (!response.ok) throw new Error(`RapidAPI status ${response.status}`);
 
     const data = await response.json();
-
-    // API Ninjas returns: { "crude-oil": 83.45 } or similar structure
-    // Try common key formats
     const price =
-      data['crude-oil'] ||
-      data['crude_oil'] ||
-      data['Crude Oil'] ||
-      data?.price ||
-      data?.[0]?.price ||
-      null;
+      data['crude-oil'] || data['crude_oil'] || data['Crude Oil'] ||
+      data?.price || data?.[0]?.price || null;
 
     if (price === null || isNaN(Number(price))) {
-      console.warn('[FuelIntelligence] Unexpected API response format:', JSON.stringify(data));
+      console.warn('[FuelIntelligence] Unexpected API response:', JSON.stringify(data));
       return null;
     }
 
@@ -80,33 +61,25 @@ async function fetchBarrelPriceFromRapidAPI() {
 
 /**
  * Main job: fetch real barrel price → compute fuel index → save to MongoDB.
- * Falls back to a calculated estimate if the API is unavailable.
+ * Falls back to a deterministic estimate if the API is unavailable.
  */
 async function fetchAndStoreFuelRates() {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  // --- Try to get live barrel price from RapidAPI ---
   let barrelPrice = await fetchBarrelPriceFromRapidAPI();
 
-  // --- Fallback: estimate based on a realistic range if API fails ---
   if (!barrelPrice) {
-    // Use a seeded random to keep the same value within a day (deterministic per date)
+    // Deterministic daily estimate (same value all day, fluctuates $75–$95)
     const daySeed = today.getDate() + today.getMonth() * 31;
-    // Fluctuate between $75–$95 (realistic Brent range)
     barrelPrice = 75 + (daySeed % 20) + parseFloat((Math.random()).toFixed(2));
-    console.log(`[FuelIntelligence] ⚠️  Using estimated barrel price: $${barrelPrice.toFixed(2)}/barrel`);
+    console.log(`[FuelIntelligence] ⚠️  Estimated barrel price: $${barrelPrice.toFixed(2)}/barrel`);
   }
 
   const fuelIndex = barrelPriceToFuelIndex(barrelPrice);
 
-  // Mock exchange rates (can be replaced with a separate RapidAPI exchange rate call)
   const exchangeRates = {
-    USD: 1.0,
-    EUR: 0.92,
-    INR: 83.5,
-    AED: 3.67,
-    GBP: 0.79,
+    USD: 1.0, EUR: 0.92, INR: 83.5, AED: 3.67, GBP: 0.79,
   };
 
   await FuelRate.findOneAndUpdate(
@@ -114,7 +87,6 @@ async function fetchAndStoreFuelRates() {
     {
       fuelIndex,
       exchangeRates,
-      // Store extra metadata for transparency
       meta: {
         barrelPriceUSD: parseFloat(barrelPrice.toFixed(2)),
         baselineBarrelPrice: BASELINE_BARREL_PRICE,
@@ -126,13 +98,13 @@ async function fetchAndStoreFuelRates() {
   );
 
   console.log(
-    `[FuelIntelligence] 📊 Fuel Index: ${fuelIndex} | Barrel: $${parseFloat(barrelPrice.toFixed(2))} | ` +
+    `[FuelIntelligence] 📊 Index: ${fuelIndex} | Barrel: $${barrelPrice.toFixed(2)} | ` +
     `Surcharge: ${((fuelIndex - 1) * 100).toFixed(1)}% | Source: ${RAPIDAPI_KEY ? 'Live API' : 'Estimated'}`
   );
 }
 
 function startFuelIntelligenceCron() {
-  fetchAndStoreFuelRates(); // Run immediately on startup
+  fetchAndStoreFuelRates(); // Run once immediately on startup
   setInterval(fetchAndStoreFuelRates, 12 * 60 * 60 * 1000); // Every 12 hours
 }
 

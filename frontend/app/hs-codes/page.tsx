@@ -17,35 +17,32 @@ export default function HSCodesPage() {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    if (!query.trim()) {
-      setResults([]);
-      return;
-    }
+  if (!query.trim()) return;
 
-    const timer = setTimeout(async () => {
+  const timer = setTimeout(async () => {
+    try {
       setLoading(true);
       setError('');
-      try {
-        const res = await fetch(`http://localhost:5000/api/search?q=${encodeURIComponent(query)}`);
-        if (!res.ok) {
-          throw new Error('Search failed');
-        }
-        const data = await res.json();
-        if (data.error) {
-          setError(data.error);
-        } else {
-          setResults(data.results || []);
-        }
-      } catch (err) {
-        console.error(err);
-        setError('Failed to fetch results.');
-      } finally {
-        setLoading(false);
-      }
-    }, 500);
 
-    return () => clearTimeout(timer);
-  }, [query]);
+      const res = await fetch(
+        `http://localhost:5000/api/search?q=${encodeURIComponent(query)}`
+      );
+
+      if (!res.ok) throw new Error('Search failed');
+
+      const data = await res.json();
+
+      setResults(data.results || []);
+    } catch (err) {
+      console.error(err);
+      setError('Failed to fetch results.');
+    } finally {
+      setLoading(false);
+    }
+  }, 500);
+
+  return () => clearTimeout(timer);
+}, [query]);
 
   const themeColor = '#0066FF';
   const themeBg = '#EBF2FF';
