@@ -65,7 +65,7 @@ const STATUS_COLORS: Record<string, { bg: string; color: string }> = {
   Closed: { bg: "#F3F4F6", color: "#6B7280" },
 };
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000";
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5001";
 
 function evidenceUrl(url: string) {
   if (url.startsWith("http")) return url;

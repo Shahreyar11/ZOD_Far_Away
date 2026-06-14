@@ -593,7 +593,11 @@ app.use('/api/theft-reports', theftReportsRouter);
 const warehouseCongestionRouter = require('./routes/warehouseCongestion');
 app.use('/api/warehouse-congestion', warehouseCongestionRouter);
 
-const PORT = process.env.PORT || 5000;
+// --- HS CODE IMAGE SCAN (AI Vision Feature) ---
+const hsScanRouter = require('./features/hs-scan/hsScanRoute');
+app.use('/api/hs-scan', hsScanRouter);
+
+const PORT = process.env.PORT || 5001;
 app.listen(PORT, () => {
   console.log(`Backend server running on port ${PORT}`);
 });
