@@ -24,7 +24,13 @@ const complianceRuleSchema = new mongoose.Schema({
 const fuelRateSchema = new mongoose.Schema({
   date: { type: Date, required: true, unique: true },
   fuelIndex: { type: Number, required: true }, // e.g. 1.05 for 5% surcharge
-  exchangeRates: { type: Map, of: Number }, // e.g. {"USD": 1, "EUR": 0.92, "INR": 83}
+  exchangeRates: { type: Map, of: Number },     // e.g. {"USD": 1, "EUR": 0.92, "INR": 83}
+  meta: {
+    barrelPriceUSD:       Number,   // Actual Brent crude price fetched
+    baselineBarrelPrice:  Number,   // The $80 baseline used for index calculation
+    source:               String,   // 'RapidAPI (Brent Crude)' or 'Estimated'
+    fetchedAt:            Date,
+  }
 });
 
 const CountryTax = mongoose.model('CountryTax', countryTaxSchema);
