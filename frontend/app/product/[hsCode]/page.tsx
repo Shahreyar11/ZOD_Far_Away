@@ -74,7 +74,7 @@ export default function ProductDetailPage() {
     if (dest) setDestination(dest);
   }, [searchParams]);
   useEffect(() => {
-    const baseUrl = typeof window !== 'undefined' ? `http://${window.location.hostname}:5001` : 'http://localhost:5001';
+    const baseUrl = typeof window !== 'undefined' ? `http://${window.location.hostname}:5000` : 'http://localhost:5000';
     fetch(`${baseUrl}/api/product/${hsCode}/intelligence`)
       .then(r => r.json())
       .then(d => { if (d.product) setProduct(d.product); })
@@ -89,7 +89,7 @@ export default function ProductDetailPage() {
       setDestLoading(true);
       setIntelligence(null);
     }, 0);
-    const baseUrl = typeof window !== 'undefined' ? `http://${window.location.hostname}:5001` : 'http://localhost:5001';
+    const baseUrl = typeof window !== 'undefined' ? `http://${window.location.hostname}:5000` : 'http://localhost:5000';
     fetch(`${baseUrl}/api/product/${hsCode}/intelligence?destination=${destination}&weight=100`)
       .then(r => r.json())
       .then(d => setIntelligence(d))
@@ -101,7 +101,7 @@ export default function ProductDetailPage() {
     if (!product) return;
     const tops = ['India', 'UAE', 'Germany', 'Spain'];
     Promise.all(tops.map(d => {
-      const baseUrl = typeof window !== 'undefined' ? `http://${window.location.hostname}:5001` : 'http://localhost:5001';
+      const baseUrl = typeof window !== 'undefined' ? `http://${window.location.hostname}:5000` : 'http://localhost:5000';
       return fetch(`${baseUrl}/api/product/${hsCode}/intelligence?destination=${d}&weight=100`).then(r => r.json());
     })).then(results => {
       setComparisonData(results.map((r, i) => {

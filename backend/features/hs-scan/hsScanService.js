@@ -10,17 +10,7 @@ const mongoose = require('mongoose');
 
 // ─── Lazy-load HSCode model (avoids re-registration conflicts) ───────────────
 function getHSCodeModel() {
-  if (mongoose.models.HSCode) return mongoose.models.HSCode;
-
-  const schema = new mongoose.Schema({
-    hsn4Digit:   { type: String },
-    hsn8Digit:   { type: String },
-    productName: { type: String },
-    gstRate:     { type: String },
-    embedding:   { type: [Number] },
-  }, { timestamps: true });
-
-  return mongoose.model('HSCode', schema);
+  return require('../../models/HSCode');
 }
 
 // ─── Step 1: Ask Gemini Vision to identify what the image shows ──────────────

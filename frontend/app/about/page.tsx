@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 };
 
 const STATS = [
-  { value: '2024', label: 'Started' },
+  { value: '2026', label: 'Started' },
   { value: '1st', label: 'Hackathon Project' },
   { value: '4', label: 'Team members' },
   { value: '100%', label: 'Dedication' },
@@ -43,7 +43,7 @@ export default function AboutPage() {
             <span className="text-gradient">one shipment at a time</span>
           </h1>
           <p className="animate-fadeUp delay-2" style={{ maxWidth: 520, fontSize: '1.0625rem' }}>
-            FreightWise is built by a team from IIT to showcase next-generation logistics tracking and intelligence.
+            FreightWise is built by a dedicated team of developers to showcase next-generation logistics tracking and intelligence.
           </p>
         </div>
       </div>

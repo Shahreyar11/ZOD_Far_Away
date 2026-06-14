@@ -11,4 +11,5 @@ const hsCodeSchema = new mongoose.Schema({
   }
 }, { timestamps: true });
 
-module.exports = mongoose.model('HSCode', hsCodeSchema);
+module.exports = mongoose.models.HSCode || mongoose.model('HSCode', hsCodeSchema);
+

@@ -14,6 +14,7 @@ import {
   Search,
   Loader2,
   Sparkles,
+  AlertCircle,
 } from "lucide-react";
 
 // ─────────────────────────────────────────────────────────────
@@ -83,57 +84,210 @@ export default function CostCalculatorPage() {
   const [result, setResult] = useState<CostBreakdown | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const [searchMode, setSearchMode] = useState<"standard" | "ai">("standard");
-  const [aiStatus, setAiStatus] = useState("");
+  // AI Assistant filling states
+  const [aiPrompt, setAiPrompt] = useState("");
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState("");
+  const [aiSuccess, setAiSuccess] = useState<string | boolean>("");
+  const [uncoveredFields, setUncoveredFields] = useState<string[]>([]);
 
-  const handleAISubmit = async () => {
-    if (!searchQuery.trim() || isSearching) return;
+  const getHighlightStyle = (field: string, extraStyles = {}) => {
+    const isUncovered = uncoveredFields.includes(field);
+    return {
+      borderColor: isUncovered ? '#F59E0B' : '',
+      boxShadow: isUncovered ? '0 0 0 3px rgba(245, 158, 11, 0.2)' : '',
+      transition: 'all 0.3s ease',
+      ...extraStyles
+    };
+  };
+  const [geminiAvailable, setGeminiAvailable] = useState<boolean | null>(null);
 
-    setIsSearching(true);
-    setAiStatus("Analyzing your prompt...");
+  // Fetch status on mount
+  useEffect(() => {
+    const baseUrl = typeof window !== 'undefined' ? `http://${window.location.hostname}:5000` : 'http://localhost:5000';
+    fetch(`${baseUrl}/api/assistant/status`)
+      .then(res => res.json())
+      .then(data => setGeminiAvailable(data.geminiAvailable))
+      .catch(err => {
+        console.error('Failed to fetch assistant status:', err);
+        setGeminiAvailable(false);
+      });
+  }, []);
+
+  const handleAiQuickFill = async (e?: React.FormEvent, customPrompt?: string) => {
+    if (e) e.preventDefault();
+    const promptToUse = customPrompt || aiPrompt;
+    if (!promptToUse.trim() || aiLoading) return;
+
+    setAiLoading(true);
+    setAiError('');
+    setAiSuccess(false);
 
     try {
-      const baseUrl = typeof window !== 'undefined' ? `http://${window.location.hostname}:5001` : 'http://localhost:5001';
+      // 1. Fetch parser response
+      const baseUrl = typeof window !== 'undefined' ? `http://${window.location.hostname}:5000` : 'http://localhost:5000';
       const parseRes = await fetch(`${baseUrl}/api/assistant/parse`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query: searchQuery }),
+        body: JSON.stringify({ query: promptToUse })
       });
 
-      if (!parseRes.ok) throw new Error('Parse failed');
+      if (!parseRes.ok) throw new Error('AI parser request failed');
       const parsed = await parseRes.json();
 
-      if (parsed.destination && COUNTRIES.includes(parsed.destination)) setDestination(parsed.destination);
-      if (parsed.origin && COUNTRIES.includes(parsed.origin)) setOrigin(parsed.origin);
-      if (parsed.quantity) setQuantity(parsed.quantity.toString());
-      if (parsed.weight) setWeight(parsed.weight.toString());
-      if (parsed.mode) setMode(parsed.mode as FreightMode);
-      if (parsed.productValue) setProductValue(parsed.productValue.toString());
-      
-      setSearchQuery(parsed.product || searchQuery);
+      // 2. Lookup parsed product code semantically
+      const searchRes = await fetch(`${baseUrl}/api/search?q=${encodeURIComponent(parsed.product)}`);
+      if (!searchRes.ok) throw new Error('Product search request failed');
+      const searchData = await searchRes.json();
+
+      const searchResults = searchData.results || [];
+      let activeHS = null;
+
+      if (searchResults.length > 0) {
+        activeHS = searchResults[0];
+        setSelectedHS(activeHS);
+        setSearchQuery(activeHS.productName);
+      } else {
+        const fallbackOption = {
+          hsn4Digit: 'GENERIC',
+          hsn8Digit: 'GENERIC',
+          productName: parsed.product,
+          gstRate: '5.0'
+        };
+        setSelectedHS(fallbackOption);
+        setSearchQuery(parsed.product);
+      }
+
+      // Update forms and detect uncovered fields
+      const newWeight = parsed.weight ? parsed.weight.toString() : "";
+      const newQuantity = parsed.quantity ? parsed.quantity.toString() : quantity;
+      const newProductValue = parsed.productValue ? parsed.productValue.toString() : "";
+      const newMode = (parsed.mode && (parsed.mode === 'air' || parsed.mode === 'sea' || parsed.mode === 'road')) ? (parsed.mode as FreightMode) : mode;
+      const newDestination = (parsed.destination && COUNTRIES.includes(parsed.destination)) ? parsed.destination : destination;
+      const newOrigin = (parsed.origin && COUNTRIES.includes(parsed.origin)) ? parsed.origin : origin;
+
+      const uncovered: string[] = [];
+
+      if (!parsed.productValue) {
+        uncovered.push('productValue');
+        setProductValue("");
+      } else {
+        setProductValue(newProductValue);
+      }
+
+      if (!parsed.weight) {
+        uncovered.push('weight');
+        setWeight("");
+      } else {
+        setWeight(newWeight);
+      }
+
+      if (!parsed.origin) {
+        uncovered.push('origin');
+      } else {
+        setOrigin(newOrigin);
+      }
+
+      if (!parsed.destination) {
+        uncovered.push('destination');
+      } else {
+        setDestination(newDestination);
+      }
+
+      if (!parsed.mode || parsed.mode === 'null') {
+        uncovered.push('mode');
+      } else {
+        setMode(newMode);
+      }
+
+      setQuantity(newQuantity);
+      setUncoveredFields(uncovered);
+
+      // Run calculation automatically
+      if (activeHS) {
+        const pv = parseFloat(parsed.productValue ? newProductValue : "0") || 0;
+        const wt = parseFloat(parsed.weight ? newWeight : "0") || 0;
+        const r = FREIGHT_RATES[newMode];
+
+        const freightCost = Math.max(r.minUSD, wt * r.ratePerKg);
+        const insuranceCost = withInsurance ? pv * 0.012 : 0;
+        const cif = pv + freightCost + insuranceCost;
+
+        const chapterPrefix = activeHS.hsn4Digit?.substring(0, 2) || "00";
+        const dutyPct = GLOBAL_DUTY_ESTIMATES[chapterPrefix] ?? 5.0;
+        const importDuty = cif * (dutyPct / 100);
+
+        let destinationTaxPct = 0;
+        if (newDestination === "India" && activeHS.gstRate) {
+          const cleanDbString = activeHS.gstRate.toString().replace(/[^0-9.]/g, '');
+          destinationTaxPct = parseFloat(cleanDbString) || 0;
+        } else {
+          destinationTaxPct = VAT_RATES[newDestination] ?? 0;
+        }
+
+        const vat = (cif + importDuty) * (destinationTaxPct / 100);
+        const brokerageFee = 180 + (cif * 0.003);
+        const total = cif + importDuty + vat + brokerageFee;
+
+        setResult({
+          productValue: pv,
+          freightCost,
+          insuranceCost,
+          cif,
+          importDuty,
+          vat,
+          brokerageFee,
+          total,
+        });
+      }
+
+      const engine = parsed.isFallback ? 'Local Fallback' : 'Gemini AI';
+      setAiSuccess(engine);
+
     } catch (err) {
       console.error(err);
-      alert('AI assistant encountered an error. Please try standard search.');
+      setAiError('Assistant failed to process query. Try standard entries.');
     } finally {
-      setIsSearching(false);
-      setAiStatus("");
+      setAiLoading(false);
     }
   };
+
+  // Auto-fill and calculate from homepage AI Assistant prompt
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const savedPrompt = localStorage.getItem('lastAiLogisticsPrompt');
+      if (savedPrompt) {
+        setAiPrompt(savedPrompt);
+        localStorage.removeItem('lastAiLogisticsPrompt'); // Consume prompt so it doesn't loop
+        setTimeout(() => {
+          handleAiQuickFill(undefined, savedPrompt);
+        }, 100);
+      }
+    }
+  }, []);
 
   useEffect(() => {
     // Triggers instantly from the very first letter
     if (searchQuery.trim().length === 0) return;
 
+    // Avoid triggering a new search and reopening the dropdown if the user just selected this item
+    if (selectedHS && searchQuery === selectedHS.productName) {
+      setIsOpen(false);
+      return;
+    }
+
     const timer = setTimeout(async () => {
       try {
         setIsSearching(true);
-        const res = await fetch(`/api/hs-codes?q=${encodeURIComponent(searchQuery)}`);
+        const baseUrl = typeof window !== 'undefined' ? `http://${window.location.hostname}:5000` : 'http://localhost:5000';
+        const res = await fetch(`${baseUrl}/api/search?q=${encodeURIComponent(searchQuery)}`);
 
         if (!res.ok) throw new Error("Search failed");
 
         const data = await res.json();
-        setHsOptions(data);
-        setIsOpen(data.length > 0);
+        const results = data.results || [];
+        setHsOptions(results);
+        setIsOpen(results.length > 0);
       } catch (err) {
         console.error(err);
         setHsOptions([]);
@@ -230,84 +384,140 @@ export default function CostCalculatorPage() {
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: "1.75rem", alignItems: "start" }}>
           
           <div className="card">
+            {/* AI Assistant Quick Fill Panel */}
+            <div style={{
+              background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
+              borderRadius: 'var(--radius-lg)',
+              padding: '1.25rem',
+              marginBottom: '1.75rem',
+              border: '1px solid rgba(255, 255, 255, 0.08)',
+              boxShadow: '0 4px 20px rgba(13,27,42,0.15)',
+              color: '#fff',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', marginBottom: '0.625rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  <Sparkles size={14} color="#60a5fa" />
+                  <span style={{ fontSize: '0.8rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#93c5fd' }}>
+                    AI Quick Fill
+                  </span>
+                </div>
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: '0.3rem',
+                  fontSize: '0.75rem', fontWeight: 600,
+                  background: 'rgba(255,255,255,0.06)',
+                  padding: '0.15rem 0.5rem', borderRadius: 'var(--radius-pill)',
+                  border: '1px solid rgba(255,255,255,0.1)',
+                }}>
+                  <span style={{
+                    display: 'inline-block', width: 5, height: 5, borderRadius: '50%',
+                    background: geminiAvailable === null ? '#94a3b8' : (geminiAvailable ? '#10b981' : '#f59e0b'),
+                    transition: 'background 0.3s'
+                  }} />
+                  <span style={{ color: 'rgba(255,255,255,0.7)' }}>
+                    {geminiAvailable === null ? 'Checking Status...' : (geminiAvailable ? 'Gemini AI' : 'Local Fallback')}
+                  </span>
+                </div>
+              </div>
+              <form onSubmit={handleAiQuickFill} style={{ display: 'flex', gap: '0.5rem' }}>
+                <input
+                  type="text"
+                  placeholder="e.g. export leather wallets from India to Germany 75kg"
+                  value={aiPrompt}
+                  onChange={e => setAiPrompt(e.target.value)}
+                  style={{
+                    flex: 1,
+                    background: 'rgba(255, 255, 255, 0.08)',
+                    border: '1px solid rgba(255, 255, 255, 0.15)',
+                    borderRadius: 'var(--radius)',
+                    padding: '0.5rem 0.75rem',
+                    color: '#fff',
+                    fontSize: '0.8125rem',
+                    outline: 'none',
+                    fontFamily: 'Inter, sans-serif'
+                  }}
+                />
+                <button
+                  type="submit"
+                  disabled={aiLoading || !aiPrompt.trim()}
+                  style={{
+                    background: 'var(--accent)',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: 'var(--radius)',
+                    padding: '0.5rem 1rem',
+                    fontSize: '0.8rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap',
+                    opacity: aiPrompt.trim() ? 1 : 0.6,
+                  }}
+                >
+                  {aiLoading ? 'Filing...' : 'Apply'}
+                </button>
+              </form>
+              {aiError && (
+                <div style={{ color: '#fca5a5', fontSize: '0.75rem', marginTop: '0.5rem', fontWeight: 500 }}>
+                  ⚠️ {aiError}
+                </div>
+              )}
+              {aiSuccess && (
+                <div style={{ color: '#86efac', fontSize: '0.75rem', marginTop: '0.5rem', fontWeight: 600 }}>
+                  ✨ Fields successfully pre-filled & calculated via {aiSuccess}!
+                </div>
+              )}
+              {aiSuccess && uncoveredFields.length > 0 && (
+                <div style={{ 
+                  background: 'rgba(245, 158, 11, 0.15)', 
+                  border: '1px solid rgba(245, 158, 11, 0.3)', 
+                  borderRadius: 'var(--radius)', 
+                  padding: '0.625rem 0.875rem', 
+                  marginTop: '0.75rem', 
+                  color: '#FDE68A',
+                  fontSize: '0.75rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  lineHeight: '1.4'
+                }}>
+                  <AlertCircle size={14} style={{ color: '#F59E0B', flexShrink: 0 }} />
+                  <div>
+                    <strong>Missing details:</strong> Some fields weren't found in your prompt. We highlighted them in orange for you to fill manually.
+                  </div>
+                </div>
+              )}
+            </div>
+
             <h2 style={{ fontSize: "1.0625rem", marginBottom: "1.75rem", paddingBottom: "1rem", borderBottom: "1px solid var(--border)" }}>
               Shipment Details
             </h2>
 
             <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
               
-              {/* ── Live Search / AI Input ── */}
+              {/* ── Live Search ── */}
               <div style={{ position: "relative" }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
-                  <label style={{ margin: 0 }}>{searchMode === 'ai' ? 'AI Quick Fill' : 'Search Product'}</label>
-                  <button
-                    type="button"
-                    onClick={() => { setSearchMode(searchMode === 'ai' ? 'standard' : 'ai'); setSearchQuery(''); setSelectedHS(null); setIsOpen(false); }}
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: '0.25rem',
-                      background: 'transparent', border: 'none', cursor: 'pointer',
-                      fontSize: '0.75rem', fontWeight: 600,
-                      color: searchMode === 'ai' ? 'var(--accent)' : 'var(--muted)',
-                    }}
-                  >
-                    <Sparkles size={13} /> {searchMode === 'ai' ? 'Use Standard Search' : 'Try AI Assistant'}
-                  </button>
-                </div>
-                
+                <label>Search Product</label>
                 <div style={{ position: "relative", display: "flex", gap: "0.5rem" }}>
                   <div style={{ position: "relative", flex: 1 }}>
-                    {searchMode === 'ai' ? (
-                      <Sparkles size={16} style={{ position: "absolute", left: "1rem", top: "50%", transform: "translateY(-50%)", color: "var(--accent)" }} />
-                    ) : (
-                      <Search size={16} style={{ position: "absolute", left: "1rem", top: "50%", transform: "translateY(-50%)", color: "var(--muted)" }} />
-                    )}
+                    <Search size={16} style={{ position: "absolute", left: "1rem", top: "50%", transform: "translateY(-50%)", color: "var(--muted)" }} />
                     <input
                       className="input"
-                      placeholder={searchMode === 'ai' ? "Try: 'ship 50kg leather wallets to Germany for $1000'..." : "Search by product name (e.g. potato, ceramic)..."}
+                      placeholder="Search by product name (e.g. potato, ceramic)..."
                       value={searchQuery}
-                      onKeyDown={(e) => {
-                        if (searchMode === 'ai' && e.key === 'Enter') {
-                          e.preventDefault();
-                          handleAISubmit();
-                        }
-                      }}
                       onChange={(e) => {
                         const value = e.target.value;
                         setSearchQuery(value);
                         if (selectedHS) setSelectedHS(null);
 
-                        if (!value.trim() || searchMode === 'ai') {
+                        if (!value.trim()) {
                           setHsOptions([]);
                           setIsOpen(false);
                         }
                       }}
-                      style={{ paddingLeft: "2.5rem", width: "100%", borderColor: searchMode === 'ai' ? 'var(--accent-border)' : 'var(--border)' }}
+                      style={{ paddingLeft: "2.5rem", width: "100%" }}
                     />
-                    {isSearching && !aiStatus && <Loader2 size={14} className="animate-spin" style={{ position: "absolute", right: "1rem", top: "50%", transform: "translateY(-50%)", color: "var(--muted)" }} />}
+                    {isSearching && <Loader2 size={14} className="animate-spin" style={{ position: "absolute", right: "1rem", top: "50%", transform: "translateY(-50%)", color: "var(--muted)" }} />}
                   </div>
-                  
-                  {searchMode === 'ai' && (
-                    <button
-                      type="button"
-                      onClick={handleAISubmit}
-                      disabled={isSearching || !searchQuery.trim()}
-                      style={{
-                        background: 'var(--accent)', color: '#fff', border: 'none',
-                        borderRadius: 'var(--radius)', padding: '0 1rem',
-                        fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer',
-                        display: 'flex', alignItems: 'center', opacity: (!searchQuery.trim() || isSearching) ? 0.6 : 1
-                      }}
-                    >
-                      {isSearching ? <Loader2 size={16} className="animate-spin" /> : 'Ask AI'}
-                    </button>
-                  )}
                 </div>
-                
-                {aiStatus && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.75rem', color: 'var(--accent)', marginTop: '0.5rem', fontWeight: 500 }}>
-                    <Loader2 size={12} className="animate-spin" /> {aiStatus}
-                  </div>
-                )}
 
                 {isOpen && (
                   <div style={{ position: "absolute", top: "100%", left: 0, right: 0, background: "#fff", border: "1px solid var(--border)", borderRadius: "var(--radius)", marginTop: "0.25rem", maxHeight: 250, overflowY: "auto", zIndex: 100, boxShadow: "var(--shadow-md)" }}>
@@ -321,6 +531,8 @@ export default function CostCalculatorPage() {
                           setIsOpen(false);
                         }}
                         style={{ padding: "0.75rem 1rem", cursor: "pointer", borderBottom: idx !== hsOptions.length - 1 ? "1px solid var(--border)" : "none" }}
+                        onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "var(--bg)")}
+                        onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
                       >
                         <div style={{ fontWeight: 600, color: "var(--navy)" }}>{item.productName}</div>
                         <div style={{ fontSize: "0.8rem", color: "var(--muted)" }}>HS Code: {item.hsn8Digit || item.hsn4Digit}</div>
@@ -341,7 +553,17 @@ export default function CostCalculatorPage() {
                 <label>Product Value (USD)</label>
                 <div style={{ position: "relative" }}>
                   <span style={{ position: "absolute", left: "1rem", top: "50%", transform: "translateY(-50%)", color: "var(--muted)", fontWeight: 700 }}>$</span>
-                  <input className="input" type="number" min="0" value={productValue} onChange={(e) => setProductValue(e.target.value)} style={{ paddingLeft: "1.875rem" }} />
+                  <input 
+                    className="input" 
+                    type="number" 
+                    min="0" 
+                    value={productValue} 
+                    onChange={(e) => {
+                      setProductValue(e.target.value);
+                      setUncoveredFields(prev => prev.filter(f => f !== 'productValue'));
+                    }} 
+                    style={getHighlightStyle('productValue', { paddingLeft: "1.875rem" })} 
+                  />
                 </div>
               </div>
 
@@ -349,11 +571,31 @@ export default function CostCalculatorPage() {
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.875rem" }}>
                 <div>
                   <label>Gross Weight (kg)</label>
-                  <input className="input" type="number" min="0" value={weight} onChange={(e) => setWeight(e.target.value)} />
+                  <input 
+                    className="input" 
+                    type="number" 
+                    min="0" 
+                    value={weight} 
+                    onChange={(e) => {
+                      setWeight(e.target.value);
+                      setUncoveredFields(prev => prev.filter(f => f !== 'weight'));
+                    }} 
+                    style={getHighlightStyle('weight')} 
+                  />
                 </div>
                 <div>
                   <label>Quantity (units)</label>
-                  <input className="input" type="number" min="1" value={quantity} onChange={(e) => setQuantity(e.target.value)} />
+                  <input 
+                    className="input" 
+                    type="number" 
+                    min="1" 
+                    value={quantity} 
+                    onChange={(e) => {
+                      setQuantity(e.target.value);
+                      setUncoveredFields(prev => prev.filter(f => f !== 'quantity'));
+                    }} 
+                    style={getHighlightStyle('quantity')} 
+                  />
                 </div>
               </div>
 
@@ -361,13 +603,29 @@ export default function CostCalculatorPage() {
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.875rem" }}>
                 <div>
                   <label>Origin</label>
-                  <select className="input select" value={origin} onChange={(e) => setOrigin(e.target.value)}>
+                  <select 
+                    className="input select" 
+                    value={origin} 
+                    onChange={(e) => {
+                      setOrigin(e.target.value);
+                      setUncoveredFields(prev => prev.filter(f => f !== 'origin'));
+                    }}
+                    style={getHighlightStyle('origin')}
+                  >
                     {COUNTRIES.map((c) => <option key={c}>{c}</option>)}
                   </select>
                 </div>
                 <div>
                   <label>Destination</label>
-                  <select className="input select" value={destination} onChange={(e) => setDestination(e.target.value)}>
+                  <select 
+                    className="input select" 
+                    value={destination} 
+                    onChange={(e) => {
+                      setDestination(e.target.value);
+                      setUncoveredFields(prev => prev.filter(f => f !== 'destination'));
+                    }}
+                    style={getHighlightStyle('destination')}
+                  >
                     {COUNTRIES.map((c) => <option key={c}>{c}</option>)}
                   </select>
                 </div>
@@ -375,12 +633,29 @@ export default function CostCalculatorPage() {
 
               {/* Freight mode */}
               <div>
-                <label>Freight Mode</label>
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: "0.625rem" }}>
+                <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span>Freight Mode</span>
+                  {uncoveredFields.includes('mode') && (
+                    <span style={{ color: '#D97706', fontSize: '0.75rem', fontWeight: 600 }}>Please select</span>
+                  )}
+                </label>
+                <div style={{ 
+                  display: "grid", 
+                  gridTemplateColumns: "repeat(3,1fr)", 
+                  gap: "0.625rem",
+                  padding: uncoveredFields.includes('mode') ? '4px' : '0',
+                  border: uncoveredFields.includes('mode') ? '1.5px solid #F59E0B' : '1.5px solid transparent',
+                  borderRadius: 'var(--radius)',
+                  boxShadow: uncoveredFields.includes('mode') ? '0 0 0 3px rgba(245, 158, 11, 0.2)' : 'none',
+                  transition: 'all 0.3s ease'
+                }}>
                   {(Object.entries(FREIGHT_RATES) as [FreightMode, (typeof FREIGHT_RATES)["air"]][]).map(([key, { label, icon: Icon, color, bg }]) => (
                     <button
                       key={key}
-                      onClick={() => setMode(key)}
+                      onClick={() => {
+                        setMode(key);
+                        setUncoveredFields(prev => prev.filter(f => f !== 'mode'));
+                      }}
                       style={{
                         padding: "0.875rem 0.5rem", borderRadius: "var(--radius)",
                         border: `1.5px solid ${mode === key ? color : "var(--border)"}`,

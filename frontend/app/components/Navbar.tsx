@@ -98,7 +98,7 @@ export default function Navbar() {
           </Link>
 
           {/* ── Desktop links ─────────────────────── */}
-          <div className="hidden xl:flex" style={{ alignItems: 'center', gap: '0.5rem' }}>
+          <div className="desktop-only" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             {/* Home Link */}
             <Link href="/" style={{
               padding: '0.45rem 0.9rem',
@@ -289,13 +289,14 @@ export default function Navbar() {
           {/* ── CTA + hamburger ──────────────────── */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
 
-            <Link href="/contact" className="btn btn-blue hidden xl:inline-flex" style={{ padding: '0.5rem 1.25rem', fontSize: '0.8125rem' }}>
+            <Link href="/contact" className="btn btn-blue desktop-only" style={{ padding: '0.5rem 1.25rem', fontSize: '0.8125rem' }}>
               Get a Quote
             </Link>
             <button
-              className="flex xl:hidden"
+              className="mobile-only"
               onClick={() => setOpen(v => !v)}
               style={{
+                display: 'flex',
                 width: 40, height: 40, borderRadius: 'var(--radius)',
                 border: '1.5px solid var(--border)',
                 background: 'var(--surface)',

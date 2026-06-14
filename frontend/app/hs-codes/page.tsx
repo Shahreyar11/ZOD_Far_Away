@@ -87,7 +87,7 @@ export default function HSCodesPage() {
 
   /* ── Check backend health on mount ── */
   useEffect(() => {
-    const baseUrl = typeof window !== 'undefined' ? `http://${window.location.hostname}:5001` : 'http://localhost:5001';
+    const baseUrl = typeof window !== 'undefined' ? `http://${window.location.hostname}:5000` : 'http://localhost:5000';
     fetch(`${baseUrl}/api/hs-scan/health`)
       .then(r => r.json())
       .then(d => setGeminiOk(d.geminiAvailable))
@@ -100,7 +100,7 @@ export default function HSCodesPage() {
     const timer = setTimeout(async () => {
       try {
         setLoading(true); setError('');
-        const baseUrl = typeof window !== 'undefined' ? `http://${window.location.hostname}:5001` : 'http://localhost:5001';
+        const baseUrl = typeof window !== 'undefined' ? `http://${window.location.hostname}:5000` : 'http://localhost:5000';
         const res = await fetch(`${baseUrl}/api/search?q=${encodeURIComponent(query)}`);
         if (!res.ok) throw new Error('Search failed');
         const data = await res.json();
@@ -157,7 +157,7 @@ export default function HSCodesPage() {
     runScanAnimation();
 
     try {
-      const baseUrl = typeof window !== 'undefined' ? `http://${window.location.hostname}:5001` : 'http://localhost:5001';
+      const baseUrl = typeof window !== 'undefined' ? `http://${window.location.hostname}:5000` : 'http://localhost:5000';
       const res = await fetch(`${baseUrl}/api/hs-scan/identify`, {
         method: 'POST',
         body: form,
@@ -331,7 +331,18 @@ export default function HSCodesPage() {
                     HS: {item.hsn8Digit || item.hsn4Digit || 'N/A'}
                   </span>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontWeight: 600, fontSize: '1rem', color: 'var(--navy)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <div style={{
+                      fontWeight: 600,
+                      fontSize: '1rem',
+                      color: 'var(--navy)',
+                      display: '-webkit-box',
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: 'vertical',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'normal',
+                      wordBreak: 'break-word',
+                    }}>
                       {item.productName}
                     </div>
                   </div>
@@ -345,7 +356,7 @@ export default function HSCodesPage() {
 
       {/* ══════════ IMAGE SCAN TAB ══════════ */}
       {activeTab === 'scan' && (
-        <div className="container" style={{ padding: '2.5rem 1.5rem', maxWidth: 900 }}>
+        <div className="container" style={{ padding: '2.5rem 1.5rem', maxWidth: scanResult ? 1100 : 900, transition: 'max-width 0.3s ease' }}>
 
           {/* Gemini status banner */}
           {geminiOk === false && (
@@ -360,7 +371,7 @@ export default function HSCodesPage() {
             </div>
           )}
 
-          <div style={{ display: 'grid', gridTemplateColumns: scanResult ? '1fr 1fr' : '1fr', gap: '1.5rem', alignItems: 'start' }}>
+          <div className={`scan-grid ${scanResult ? 'has-result' : ''}`}>
 
             {/* ── Left: Drop Zone + Preview ─────────────────────────────── */}
             <div>
@@ -630,7 +641,18 @@ export default function HSCodesPage() {
                               {item.hsn8Digit || item.hsn4Digit || 'N/A'}
                             </span>
                             <div style={{ flex: 1, minWidth: 0 }}>
-                              <div style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--navy)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              <div style={{
+                                fontWeight: 600,
+                                fontSize: '0.9rem',
+                                color: 'var(--navy)',
+                                display: '-webkit-box',
+                                WebkitLineClamp: 2,
+                                WebkitBoxOrient: 'vertical',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'normal',
+                                wordBreak: 'break-word',
+                              }}>
                                 {item.productName}
                               </div>
                               {item.gstRate && (
@@ -652,11 +674,22 @@ export default function HSCodesPage() {
         </div>
       )}
 
-      {/* ── CSS for pulse animation ── */}
+      {/* ── CSS for pulse animation & grid responsiveness ── */}
       <style>{`
         @keyframes pulse {
           0%, 100% { opacity: 1; }
           50% { opacity: 0.4; }
+        }
+        .scan-grid {
+          display: grid;
+          grid-template-columns: 1fr;
+          gap: 1.5rem;
+          align-items: start;
+        }
+        @media (min-width: 768px) {
+          .scan-grid.has-result {
+            grid-template-columns: 1fr 1fr;
+          }
         }
       `}</style>
     </div>
