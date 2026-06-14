@@ -71,8 +71,6 @@ export default function Navbar() {
       <nav style={{
         position: 'fixed', top: 0, left: 0, right: 0, zIndex: 1000,
         background: scrolled ? 'var(--nav-bg-scrolled)' : 'var(--nav-bg)',
-        backdropFilter: 'blur(16px)',
-        WebkitBackdropFilter: 'blur(16px)',
         borderBottom: `1px solid ${scrolled ? 'var(--border)' : 'transparent'}`,
         transition: 'all 0.25s',
         boxShadow: scrolled ? 'var(--shadow-sm)' : 'none',
@@ -167,8 +165,6 @@ export default function Navbar() {
               }}>
                 <div style={{
                   background: scrolled ? 'var(--nav-bg-scrolled)' : 'var(--nav-bg)',
-                  backdropFilter: 'blur(20px)',
-                  WebkitBackdropFilter: 'blur(20px)',
                   border: '1px solid var(--border)',
                   borderRadius: 'var(--radius-lg)',
                   boxShadow: 'var(--shadow-lg)',

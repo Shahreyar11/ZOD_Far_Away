@@ -11,8 +11,8 @@
   --surface-2:    #F8FAFD;       /* alternate card bg */
   --border:       #E3E8EF;
   --border-dark:  #C9D3E0;
-  --nav-bg:       rgba(255, 255, 255, 0.88);
-  --nav-bg-scrolled: rgba(255, 255, 255, 0.96);
+  --nav-bg:       #FFFFFF;
+  --nav-bg-scrolled: #FFFFFF;
 
   --navy:         #0D1B2A;       /* richer dark */
   --navy-2:       #1A2D42;
@@ -63,8 +63,8 @@
   --surface-2:    #1A2D42;
   --border:       #2A3C54;
   --border-dark:  #384E69;
-  --nav-bg:       rgba(22, 37, 55, 0.88);
-  --nav-bg-scrolled: rgba(22, 37, 55, 0.98);
+  --nav-bg:       #162537;
+  --nav-bg-scrolled: #162537;
 
   --navy:         #F5F7FA;
   --navy-2:       #E3E8EF;
