@@ -79,6 +79,16 @@ Rules:
 
   if (!response.ok) {
     const errText = await response.text();
+    if (response.status === 429) {
+      console.warn('[HSScan] Gemini Quota Exceeded (429). Using fallback.');
+      return {
+        identified_item:  'Item (Fallback Mode)',
+        search_keywords:  ['laptop', 'electronics'], // basic fallback keywords
+        confidence:       0,
+        description:      'Your Gemini API key has exceeded its free tier quota or is blocked in your region. This is a fallback response.',
+        isFallback:       true,
+      };
+    }
     throw new Error(`Gemini Vision API error (${response.status}): ${errText}`);
   }
 

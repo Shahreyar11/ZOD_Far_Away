@@ -13,7 +13,9 @@ import {
   Calculator, 
   Route, 
   ShieldAlert, 
-  Warehouse 
+  Warehouse,
+  Moon,
+  Sun
 } from 'lucide-react';
 
 const SOLUTIONS = [
@@ -31,14 +33,27 @@ export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [mobileSolutionsOpen, setMobileSolutionsOpen] = useState(false);
+  const [isDark, setIsDark] = useState(false);
 
   const isSolutionsActive = SOLUTIONS.some(item => pathname === item.href);
 
   useEffect(() => {
     const handler = () => setScrolled(window.scrollY > 8);
     window.addEventListener('scroll', handler);
+    if (document.documentElement.classList.contains('dark')) {
+      setIsDark(true);
+    }
     return () => window.removeEventListener('scroll', handler);
   }, []);
+
+  const toggleDark = () => {
+    setIsDark(d => {
+      const next = !d;
+      if (next) document.documentElement.classList.add('dark');
+      else document.documentElement.classList.remove('dark');
+      return next;
+    });
+  };
 
   useEffect(() => { 
     setOpen(false); 
@@ -55,7 +70,7 @@ export default function Navbar() {
     <>
       <nav style={{
         position: 'fixed', top: 0, left: 0, right: 0, zIndex: 1000,
-        background: scrolled ? 'rgba(255,255,255,0.96)' : 'rgba(255,255,255,0.88)',
+        background: scrolled ? 'var(--nav-bg-scrolled)' : 'var(--nav-bg)',
         backdropFilter: 'blur(16px)',
         WebkitBackdropFilter: 'blur(16px)',
         borderBottom: `1px solid ${scrolled ? 'var(--border)' : 'transparent'}`,
@@ -78,7 +93,7 @@ export default function Navbar() {
               <Package2 size={18} color="#fff" />
             </div>
             <span style={{ fontWeight: 800, fontSize: '1.0625rem', letterSpacing: '-0.035em', color: 'var(--navy)' }}>
-              ZOD<span style={{ color: 'var(--accent)' }}>Far</span>Away
+              FreightWise
             </span>
           </Link>
 
@@ -146,20 +161,22 @@ export default function Navbar() {
                 visibility: dropdownOpen ? 'visible' : 'hidden',
                 pointerEvents: dropdownOpen ? 'all' : 'none',
                 width: 580,
-                background: scrolled ? 'rgba(255,255,255,0.98)' : 'rgba(255,255,255,0.95)',
-                backdropFilter: 'blur(20px)',
-                WebkitBackdropFilter: 'blur(20px)',
-                border: '1px solid var(--border)',
-                borderRadius: 'var(--radius-lg)',
-                boxShadow: 'var(--shadow-lg)',
-                padding: '1.25rem',
-                marginTop: '0.5rem',
+                paddingTop: '0.5rem',
                 transition: 'opacity 0.2s ease-out, transform 0.2s ease-out, visibility 0.2s',
                 zIndex: 1010,
-                display: 'grid',
-                gridTemplateColumns: 'repeat(2, 1fr)',
-                gap: '0.75rem',
               }}>
+                <div style={{
+                  background: scrolled ? 'var(--nav-bg-scrolled)' : 'var(--nav-bg)',
+                  backdropFilter: 'blur(20px)',
+                  WebkitBackdropFilter: 'blur(20px)',
+                  border: '1px solid var(--border)',
+                  borderRadius: 'var(--radius-lg)',
+                  boxShadow: 'var(--shadow-lg)',
+                  padding: '1.25rem',
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(2, 1fr)',
+                  gap: '0.75rem',
+                }}>
                 {SOLUTIONS.map(item => {
                   const Icon = item.icon;
                   const itemActive = pathname === item.href;
@@ -226,6 +243,7 @@ export default function Navbar() {
                     </Link>
                   );
                 })}
+                </div>
               </div>
             </div>
 
@@ -270,6 +288,7 @@ export default function Navbar() {
 
           {/* ── CTA + hamburger ──────────────────── */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+
             <Link href="/contact" className="btn btn-blue hidden xl:inline-flex" style={{ padding: '0.5rem 1.25rem', fontSize: '0.8125rem' }}>
               Get a Quote
             </Link>

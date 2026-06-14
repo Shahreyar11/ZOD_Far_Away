@@ -15,9 +15,21 @@ const HSCode = mongoose.models.HSCode || mongoose.model('HSCode', hsCodeSchema);
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    const query = searchParams.get('q');
+    const rawQuery = searchParams.get('q');
 
-    if (!query) return NextResponse.json([]);
+    if (!rawQuery) return NextResponse.json([]);
+
+    // Map common terms to official dataset terms
+    const synonyms: Record<string, string> = {
+      'laptop': 'computer',
+      'phone': 'telephone',
+      'smartphone': 'telephone',
+      'car': 'vehicle',
+      'shoes': 'footwear',
+      'clothes': 'apparel',
+      'tv': 'television',
+    };
+    const query = synonyms[rawQuery.toLowerCase().trim()] || rawQuery;
 
     // 1. Strict Environment Check
     const MONGODB_URI = process.env.MONGODB_URI;

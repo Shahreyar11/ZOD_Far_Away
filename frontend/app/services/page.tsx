@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 import { Plane, Ship, Truck, Warehouse, Shield, BarChart3, CheckCircle2, ArrowRight, Clock } from 'lucide-react';
 
 export const metadata: Metadata = {
-  title: 'Services — ZODFarAway',
+  title: 'Services — FreightWise',
   description: 'Air freight, sea freight, customs brokerage, warehousing and supply chain advisory — all under one roof.',
 };
 

@@ -4,22 +4,19 @@ import Link from 'next/link';
 import { Package2, Mail, Phone, MapPin, ArrowRight } from 'lucide-react';
 
 const FOOTER_LINKS = {
-  Tools: [
+  Platform: [
     { label: 'HS Code Search',        href: '/hs-codes' },
-    { label: 'Cost Calculator',       href: '/cost-calculator' },
+    { label: 'Landed Cost Calculator',href: '/cost-calculator' },
     { label: 'Route Optimizer',       href: '/route-optimization' },
-    { label: 'Theft Reports',         href: '/theft-reports' },
-    { label: 'Warehouse Congestion',  href: '/warehouse-congestion' },
     { label: 'Supply Chain Planner',  href: '/supply-chain' },
   ],
-  Services: [
-    { label: 'Air Freight',           href: '/services' },
-    { label: 'Sea Freight',           href: '/services' },
-    { label: 'Customs Brokerage',     href: '/services' },
-    { label: 'Warehousing',           href: '/services' },
+  Resources: [
+    { label: 'Trade Intelligence',    href: '#' },
+    { label: 'Compliance Center',     href: '#' },
+    { label: 'Documentation',         href: '#' },
   ],
   Company: [
-    { label: 'About Us',  href: '/about' },
+    { label: 'About',  href: '/about' },
     { label: 'Contact',   href: '/contact' },
   ],
   Legal: [
@@ -57,26 +54,12 @@ export default function Footer() {
                 <Package2 size={17} color="#fff" />
               </div>
               <span style={{ fontWeight: 800, fontSize: '1rem', letterSpacing: '-0.035em', color: '#fff' }}>
-                ZOD<span style={{ color: 'var(--accent-light)' }}>Far</span>Away
+                FreightWise
               </span>
             </Link>
             <p style={{ fontSize: '0.8125rem', lineHeight: 1.7, marginBottom: '1.5rem', color: 'rgba(255,255,255,0.45)' }}>
-              End-to-end supply chain solutions — from HS classification to last-mile delivery.
+              AI-powered trade intelligence platform helping businesses navigate global commerce through HS code classification, compliance insights, landed cost estimation, and supply chain intelligence.
             </p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-              {[
-                { icon: Phone, text: '+1 (800) ZOD-SHIP' },
-                { icon: Mail,  text: 'hello@zodfaraway.com' },
-                { icon: MapPin,text: 'Dubai, UAE · New York, US' },
-              ].map(({ icon: Icon, text }) => (
-                <div key={text} style={{
-                  display: 'flex', alignItems: 'center', gap: '0.5rem',
-                  fontSize: '0.8125rem', color: 'rgba(255,255,255,0.45)',
-                }}>
-                  <Icon size={12} color="var(--accent-light)" /> {text}
-                </div>
-              ))}
-            </div>
           </div>
 
           {/* Link columns */}
@@ -108,46 +91,7 @@ export default function Footer() {
           ))}
         </div>
 
-        {/* Newsletter strip */}
-        <div style={{
-          display: 'flex', flexWrap: 'wrap', gap: '1.25rem',
-          alignItems: 'center', justifyContent: 'space-between',
-          padding: '1.75rem 2rem',
-          borderRadius: 'var(--radius-lg)',
-          background: 'rgba(255,255,255,0.05)',
-          border: '1px solid rgba(255,255,255,0.1)',
-          marginBottom: '2.5rem',
-        }}>
-          <div>
-            <div style={{ fontWeight: 700, fontSize: '1rem', color: '#fff', marginBottom: '0.25rem' }}>
-              Trade Insights Newsletter
-            </div>
-            <p style={{ fontSize: '0.8125rem', margin: 0, color: 'rgba(255,255,255,0.45)' }}>
-              HS code updates, duty changes, and logistics tips — weekly.
-            </p>
-          </div>
-          <div style={{ display: 'flex', gap: '0.625rem', flexWrap: 'wrap' }}>
-            <input
-              type="email"
-              placeholder="your@email.com"
-              style={{
-                minWidth: 220, maxWidth: 280,
-                padding: '0.6875rem 1rem',
-                border: '1.5px solid rgba(255,255,255,0.15)',
-                borderRadius: 'var(--radius)',
-                background: 'rgba(255,255,255,0.08)',
-                color: '#fff',
-                fontFamily: 'Inter, sans-serif',
-                fontSize: '0.9rem',
-                outline: 'none',
-              }}
-            />
-            {/* TODO: API — wire up to email list (Mailchimp / SendGrid / custom endpoint) */}
-            <button className="btn btn-blue btn-sm" style={{ padding: '0.6875rem 1.25rem', fontSize: '0.875rem' }}>
-              Subscribe <ArrowRight size={14} />
-            </button>
-          </div>
-        </div>
+
 
         {/* Bottom bar */}
         <div style={{
@@ -157,7 +101,7 @@ export default function Footer() {
           borderTop: '1px solid rgba(255,255,255,0.08)',
         }}>
           <p style={{ fontSize: '0.8125rem', margin: 0, color: 'rgba(255,255,255,0.3)' }}>
-            © {new Date().getFullYear()} ZODFarAway. All rights reserved.
+            © {new Date().getFullYear()} FreightWise. All rights reserved.
           </p>
           <div style={{ display: 'flex', gap: '1.5rem' }}>
             {['Privacy', 'Terms', 'Cookies'].map(item => (
