@@ -61,8 +61,8 @@ export default function ContactPage() {
         <div className="container" style={{ padding: '1.25rem 1.5rem' }}>
           <div style={{ display: 'flex', gap: '2rem', flexWrap: 'wrap' }}>
             {[
-              { icon: Phone, text: '+1 (800) ZOD-SHIP', sub: 'Mon–Fri 8am–8pm GST' },
-              { icon: Mail,  text: 'hello@zodfaraway.com', sub: '< 2 hour response' },
+              { icon: Phone, text: '+1 (800) FREIGHT', sub: 'Mon–Fri 8am–8pm GST' },
+              { icon: Mail,  text: 'hello@freightwise.com', sub: '< 2 hour response' },
               { icon: Clock, text: '24/7 Live Chat', sub: 'Instant AI + human support' },
             ].map(({ icon: Icon, text, sub }) => (
               <div key={text} style={{

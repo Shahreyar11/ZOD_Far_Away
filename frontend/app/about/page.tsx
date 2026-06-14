@@ -3,8 +3,8 @@ import type { Metadata } from 'next';
 import { Globe, Award, CheckCircle2, ArrowRight, MapPin, Users, TrendingUp, Zap } from 'lucide-react';
 
 export const metadata: Metadata = {
-  title: 'About Us — ZODFarAway',
-  description: 'Learn about ZODFarAway — our mission, team, and global presence in logistics.',
+  title: 'About Us — FreightWise',
+  description: 'Learn about FreightWise — our mission, team, and global presence in logistics.',
 };
 
 const STATS = [
@@ -63,7 +63,7 @@ export default function AboutPage() {
             <span className="text-gradient">one shipment at a time</span>
           </h1>
           <p className="animate-fadeUp delay-2" style={{ maxWidth: 520, fontSize: '1.0625rem' }}>
-            Founded in 2015, ZODFarAway was built on a simple belief: international trade should be simple, transparent, and accessible to every business.
+            Founded in 2015, FreightWise was built on a simple belief: international trade should be simple, transparent, and accessible to every business.
           </p>
         </div>
       </div>
@@ -99,7 +99,7 @@ export default function AboutPage() {
               <div className="label">Mission</div>
               <h2 style={{ marginBottom: '1.25rem' }}>Making global trade frictionless</h2>
               <p style={{ marginBottom: '1rem' }}>
-                We built ZODFarAway because we saw how broken logistics was — opaque pricing, unexpected duty bills, mountains of paperwork, and zero visibility.
+                We built FreightWise because we saw how broken logistics was — opaque pricing, unexpected duty bills, mountains of paperwork, and zero visibility.
               </p>
               <p style={{ marginBottom: '2rem' }}>
                 Today our platform helps 10,000+ businesses in 150 countries ship confidently with upfront costs, accurate classification, and real-time tracking.
@@ -222,7 +222,7 @@ export default function AboutPage() {
         <div className="container" style={{ textAlign: 'center', position: 'relative' }}>
           <h2 style={{ color: '#fff', marginBottom: '1rem' }}>Join 10,000+ businesses</h2>
           <p style={{ marginBottom: '2.5rem', maxWidth: 360, margin: '0 auto 2.5rem', color: 'rgba(255,255,255,0.6)' }}>
-            Start shipping smarter with ZODFarAway today.
+            Start shipping smarter with FreightWise today.
           </p>
           <Link href="/contact" className="btn btn-amber btn-lg">
             Get Started <ArrowRight size={16} />

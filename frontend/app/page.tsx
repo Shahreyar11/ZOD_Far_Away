@@ -4,22 +4,22 @@ import { ArrowRight, Search, Globe, Calculator, Truck, ChevronRight, TrendingUp,
 import HSSearchBar from '../components/HSSearchBar';
 
 export const metadata: Metadata = {
-  title: 'ZODFarAway — Global Logistics & Supply Chain',
+  title: 'Freight — Global Logistics & Supply Chain',
   description: 'HS code lookup, landed cost calculator, supply chain planner and freight services — all in one platform.',
 };
 
-const STATS = [
-  { value: '150+', label: 'Countries covered', icon: Globe },
-  { value: '50K+', label: 'Shipments / month', icon: TrendingUp },
-  { value: '99.2%', label: 'On-time delivery', icon: Clock },
-  { value: '$2B+', label: 'Trade value handled', icon: Shield },
+const WHY_CHOOSE_US = [
+  { num: '01', title: 'Accurate HS Classification', desc: 'Find the most relevant HS codes using AI-powered product search.' },
+  { num: '02', title: 'Global Trade Intelligence', desc: 'Access duties, VAT, taxes, and trade requirements across multiple countries.' },
+  { num: '03', title: 'Compliance Verification', desc: 'Identify dangerous goods, required documents, certifications, and restrictions before shipping.' },
+  { num: '04', title: 'Landed Cost Prediction', desc: 'Estimate the true cost of international trade including freight, duties, taxes, and handling charges.' },
 ];
 
 const FEATURES = [
   {
     icon: Search,
     title: 'HS Code Search',
-    desc: 'Classify any product instantly. Get duty rates, required documents, and VAT for any trade lane.',
+    desc: 'Find and classify products using intelligent HS code matching and trade datasets.',
     href: '/hs-codes',
     color: '#0066FF',
     bg: '#EBF2FF',
@@ -27,7 +27,7 @@ const FEATURES = [
   {
     icon: Globe,
     title: 'Supply Chain Planner',
-    desc: 'Visualise every stage from sourcing to delivery — with timelines, risks, and required documents.',
+    desc: 'Visualize sourcing, transportation, compliance, and delivery requirements.',
     href: '/supply-chain',
     color: '#0D9488',
     bg: '#EDFAF9',
@@ -35,7 +35,7 @@ const FEATURES = [
   {
     icon: Calculator,
     title: 'Landed Cost Calculator',
-    desc: 'Calculate duties, VAT, freight, insurance, and brokerage for any country pair in seconds.',
+    desc: 'Calculate duties, VAT, freight costs, insurance, and total landed costs.',
     href: '/cost-calculator',
     color: '#7C3AED',
     bg: '#F5F3FF',
@@ -43,29 +43,28 @@ const FEATURES = [
   {
     icon: Route,
     title: 'Route Optimizer',
-    desc: 'Traffic-aware routing via OSRM/OpenRouteService plus live road, port, air cargo, and border congestion checks.',
+    desc: 'Compare routes using distance, congestion indicators, and trade constraints.',
     href: '/route-optimization',
     color: '#DC2626',
     bg: '#FEF2F2',
   },
   {
     icon: Truck,
-    title: 'Freight Estimation',
-    desc: 'Calculate precise freight costs using our live fuel and distance multipliers.',
-    href: '/services',
+    title: 'Warehouse Intelligence',
+    desc: 'Monitor storage bottlenecks and operational risks.',
+    href: '/warehouse-congestion',
     color: '#F59E0B',
     bg: '#FFFBEB',
   },
+  {
+    icon: Shield,
+    title: 'Trade Risk Reports',
+    desc: 'Identify compliance risks, restrictions, and regulatory concerns.',
+    href: '/theft-reports',
+    color: '#0ea5e9',
+    bg: '#e0f2fe',
+  },
 ];
-
-const STEPS = [
-  { num: '01', title: 'Classify your product', desc: 'Find the right HS code instantly with our smart search.' },
-  { num: '02', title: 'Calculate landed cost', desc: 'Duties, VAT, freight — all upfront, zero surprises.' },
-  { num: '03', title: 'Book freight', desc: 'Choose mode, confirm, and we handle the rest.' },
-  { num: '04', title: 'Track to your door', desc: 'Real-time updates from port to final delivery.' },
-];
-
-const PARTNERS = ['DHL', 'Maersk', 'FedEx', 'MSC', 'Flexport'];
 
 export default function HomePage() {
   return (
@@ -105,20 +104,20 @@ export default function HomePage() {
               fontSize: '0.8rem', fontWeight: 600,
               backdropFilter: 'blur(8px)',
             }}>
-              🌐 &nbsp;Trusted by 10,000+ businesses in 150+ countries
+              AI-Powered Trade Intelligence
             </span>
           </div>
 
           <h1 className="animate-fadeUp delay-1" style={{ color: '#fff', marginBottom: '1.375rem' }}>
-            Global Logistics,<br />
-            <span className="text-gradient">Made Simple</span>
+            Navigate Global Trade<br />
+            <span className="text-gradient">with Confidence</span>
           </h1>
 
           <p className="animate-fadeUp delay-2" style={{
             fontSize: '1.125rem', color: 'rgba(255,255,255,0.7)',
-            maxWidth: 540, margin: '0 auto 2.5rem', lineHeight: 1.7,
+            maxWidth: 600, margin: '0 auto 2.5rem', lineHeight: 1.7,
           }}>
-            From HS code classification to last-mile delivery — calculate duties, compare freight, and manage your entire supply chain in one place.
+            Instantly identify HS codes, calculate duties and VAT, estimate landed costs, verify compliance requirements, and optimize international shipping routes.
           </p>
 
           <div className="animate-fadeUp delay-3" style={{ position: 'relative', zIndex: 50 }}>
@@ -128,68 +127,19 @@ export default function HomePage() {
           <div className="animate-fadeUp delay-4" style={{
             display: 'flex', gap: '0.875rem', justifyContent: 'center', flexWrap: 'wrap', marginBottom: '3.5rem',
           }}>
-            <Link href="/cost-calculator" className="btn btn-white btn-lg">
-              Calculate Costs <ArrowRight size={16} />
+            <Link href="/hs-codes" className="btn btn-white btn-lg">
+              Search HS Codes <ArrowRight size={16} />
             </Link>
-            <Link href="/hs-codes" className="btn btn-lg" style={{
+            <Link href="#features" className="btn btn-lg" style={{
               background: 'rgba(255,255,255,0.12)',
               border: '1.5px solid rgba(255,255,255,0.25)',
               color: '#fff',
               backdropFilter: 'blur(8px)',
             }}>
-              Search HS Codes
+              Explore Platform
             </Link>
           </div>
 
-          {/* Trusted-by strip */}
-          <div className="animate-fadeUp delay-4" style={{
-            display: 'flex', alignItems: 'center', gap: '0.75rem',
-            justifyContent: 'center', flexWrap: 'wrap',
-          }}>
-            <span style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Partners</span>
-            {PARTNERS.map(b => (
-              <span key={b} style={{
-                fontSize: '0.8125rem', fontWeight: 700,
-                color: 'rgba(255,255,255,0.5)',
-                padding: '0.25rem 0.875rem',
-                border: '1px solid rgba(255,255,255,0.15)',
-                borderRadius: 'var(--radius-pill)',
-                background: 'rgba(255,255,255,0.05)',
-              }}>
-                {b}
-              </span>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── Stats ─────────────────────────────────────────────────── */}
-      <section style={{
-        background: 'var(--surface)',
-        borderBottom: '1px solid var(--border)',
-        boxShadow: 'var(--shadow-sm)',
-      }}>
-        <div className="container">
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
-            gap: 0,
-          }}>
-            {STATS.map(({ value, label, icon: Icon }, i) => (
-              <div key={label} className="stat-item" style={{
-                borderRight: i < STATS.length - 1 ? '1px solid var(--border)' : 'none',
-              }}>
-                <div style={{
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  gap: '0.5rem', marginBottom: '0.375rem',
-                }}>
-                  <Icon size={16} color="var(--accent)" />
-                </div>
-                <div className="stat-value">{value}</div>
-                <div className="stat-label">{label}</div>
-              </div>
-            ))}
-          </div>
         </div>
       </section>
 
@@ -233,21 +183,21 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ── How it works ──────────────────────────────────────────── */}
+      {/* ── Why Choose Us ──────────────────────────────────────────── */}
       <section className="section" style={{ background: 'var(--surface)', borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)' }}>
         <div className="container">
           <div style={{ marginBottom: '3rem', textAlign: 'center' }}>
-            <div className="label" style={{ margin: '0 auto 1rem' }}>How it works</div>
-            <h2>Ship in 4 simple steps</h2>
+            <div className="label" style={{ margin: '0 auto 1rem' }}>Why Choose Us</div>
+            <h2>Why Businesses Choose FreightWise</h2>
           </div>
 
           <div className="grid-4">
-            {STEPS.map(({ num, title, desc }, i) => (
+            {WHY_CHOOSE_US.map(({ num, title, desc }, i) => (
               <div key={num} style={{ textAlign: 'center', padding: '1.5rem 1rem' }}>
                 {/* Connector line visual */}
                 <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1.25rem' }}>
                   <div className="step-num" style={{ width: 48, height: 48, fontSize: '0.875rem' }}>{num}</div>
-                  {i < STEPS.length - 1 && (
+                  {i < WHY_CHOOSE_US.length - 1 && (
                     <div style={{
                       position: 'absolute', left: 'calc(50% + 28px)', top: '50%',
                       width: 'calc(100% - 24px)', height: 1,
@@ -264,37 +214,26 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ── Trust Banner ──────────────────────────────────────────── */}
-      <section style={{ background: 'var(--bg)', padding: '4rem 0' }}>
-        <div className="container">
-          <div style={{
-            background: 'linear-gradient(135deg, var(--accent-bg) 0%, #F0FDFC 100%)',
-            border: '1px solid var(--accent-border)',
-            borderRadius: 'var(--radius-xl)',
-            padding: '3rem 2.5rem',
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-            gap: '2rem',
-            alignItems: 'center',
-          }}>
-            {[
-              { icon: Shield, title: 'ISO 9001 Certified', desc: 'Quality management you can trust' },
-              { icon: Clock, title: '2-Hour Response', desc: 'Our team responds fast, always' },
-              { icon: Globe, title: 'AEO Status', desc: 'Authorised Economic Operator approved' },
-            ].map(({ icon: Icon, title, desc }) => (
-              <div key={title} style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem' }}>
-                <div style={{
-                  width: 44, height: 44, borderRadius: 'var(--radius)',
-                  background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-                }}>
-                  <Icon size={20} color="#fff" />
-                </div>
-                <div>
-                  <div style={{ fontWeight: 700, fontSize: '0.9375rem', color: 'var(--navy)', marginBottom: '0.2rem' }}>{title}</div>
-                  <div style={{ fontSize: '0.8125rem', color: 'var(--muted)' }}>{desc}</div>
-                </div>
-              </div>
-            ))}
+      {/* ── About ──────────────────────────────────────────── */}
+      <section id="features" style={{ background: 'var(--bg)', padding: '5rem 0' }}>
+        <div className="container" style={{ maxWidth: 800, textAlign: 'center' }}>
+          <div className="label" style={{ margin: '0 auto 1rem' }}>About Us</div>
+          <h2 style={{ marginBottom: '1.5rem' }}>About FreightWise</h2>
+          <p style={{ fontSize: '1.125rem', lineHeight: 1.8, marginBottom: '1.5rem', color: 'var(--muted)' }}>
+            FreightWise is a trade intelligence platform built to simplify international shipping and cross-border commerce. Our platform combines HS code classification, compliance analysis, landed cost estimation, and route intelligence into a single workflow.
+          </p>
+          <p style={{ fontSize: '1.125rem', lineHeight: 1.8, marginBottom: '2.5rem', color: 'var(--muted)' }}>
+            Instead of navigating multiple customs portals, tariff databases, and logistics resources, businesses can access critical trade information through one unified platform. Whether you are an exporter, importer, logistics professional, or supply chain team, FreightWise helps you make faster and more informed trade decisions.
+          </p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '2rem', textAlign: 'left', background: 'var(--surface)', padding: '2rem', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border)' }}>
+            <div>
+              <h4 style={{ color: 'var(--accent)', marginBottom: '0.5rem' }}>Our Mission</h4>
+              <p style={{ fontSize: '0.95rem', color: 'var(--muted)' }}>Make international trade transparent, accessible, and data-driven.</p>
+            </div>
+            <div>
+              <h4 style={{ color: 'var(--accent)', marginBottom: '0.5rem' }}>Our Vision</h4>
+              <p style={{ fontSize: '0.95rem', color: 'var(--muted)' }}>Become the operating system for global trade intelligence.</p>
+            </div>
           </div>
         </div>
       </section>
@@ -317,22 +256,22 @@ export default function HomePage() {
               padding: '0.25rem 0.875rem',
               fontSize: '0.75rem', fontWeight: 700,
               textTransform: 'uppercase', letterSpacing: '0.1em',
-            }}>Limited offer</span>
+            }}>Get Started</span>
           </div>
-          <h2 style={{ color: '#fff', marginBottom: '1rem' }}>Ready to ship smarter?</h2>
-          <p style={{ marginBottom: '2.5rem', maxWidth: 400, margin: '0 auto 2.5rem', color: 'rgba(255,255,255,0.65)', fontSize: '1rem' }}>
-            Get a personalised quote from our team within 2 hours — free of charge.
+          <h2 style={{ color: '#fff', marginBottom: '1rem' }}>Ready to elevate your trade intelligence?</h2>
+          <p style={{ marginBottom: '2.5rem', maxWidth: 500, margin: '0 auto 2.5rem', color: 'rgba(255,255,255,0.65)', fontSize: '1rem' }}>
+            Access HS code data, duty rates, and compliance requirements across 150+ countries.
           </p>
           <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
-            <Link href="/contact" className="btn btn-amber btn-lg">
-              Get a Free Quote <ArrowRight size={16} />
+            <Link href="/hs-codes" className="btn btn-amber btn-lg">
+              Search HS Codes <ArrowRight size={16} />
             </Link>
-            <Link href="/services" className="btn btn-lg" style={{
+            <Link href="#features" className="btn btn-lg" style={{
               background: 'rgba(255,255,255,0.12)',
               border: '1.5px solid rgba(255,255,255,0.2)',
               color: 'rgba(255,255,255,0.85)',
             }}>
-              Our Services
+              Explore Platform
             </Link>
           </div>
         </div>
