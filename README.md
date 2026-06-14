@@ -79,7 +79,12 @@ Visualize your entire workflow from sourcing to final delivery on a single, intu
 ## 👥 The Team
 
 Built with 100% passion by **Team ZOD** for our 1st Hackathon Project!
-We are a group of 5 developers dedicated to making global trade transparent, accessible, and data-driven.
+We are a group of developers from IIT dedicated to making global trade transparent, accessible, and data-driven.
+
+- Gautam Saini
+- Saumya
+- Mayank
+- Shahreyar
 
 ## 📜 License
 
