@@ -97,9 +97,21 @@ app.get('/api/search', async (req, res) => {
         const { q } = req.query;
         const HSCode = require('./models/HSCode');
         
+        // Map common terms to official dataset terms
+        const synonyms = {
+          'laptop': 'computer',
+          'phone': 'telephone',
+          'smartphone': 'telephone',
+          'car': 'vehicle',
+          'shoes': 'footwear',
+          'clothes': 'apparel',
+          'tv': 'television',
+        };
+        const mappedQ = synonyms[q.toLowerCase().trim()] || q;
+        
         // Split the query into words for better fallback matching
-        const words = q.split(' ').filter(w => w.length > 2);
-        const searchRegexes = words.length > 0 ? words.map(w => new RegExp(w, 'i')) : [new RegExp(q, 'i')];
+        const words = mappedQ.split(' ').filter(w => w.length > 2);
+        const searchRegexes = words.length > 0 ? words.map(w => new RegExp(w, 'i')) : [new RegExp(mappedQ, 'i')];
         
         const fallbackResults = await HSCode.find({
             productName: { $in: searchRegexes }
@@ -117,7 +129,8 @@ app.get('/api/search', async (req, res) => {
         
         return res.json({ results: cleanedResults, fallback: true });
     } catch(err) {
-        res.status(500).json({ error: "Internal server error." });
+        console.error("Search fallback error:", err);
+        res.status(500).json({ error: "Internal server error.", details: err.message, stack: err.stack });
     }
   }
 });

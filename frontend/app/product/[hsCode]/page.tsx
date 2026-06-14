@@ -74,7 +74,8 @@ export default function ProductDetailPage() {
     if (dest) setDestination(dest);
   }, [searchParams]);
   useEffect(() => {
-    fetch(`http://localhost:5001/api/product/${hsCode}/intelligence`)
+    const baseUrl = typeof window !== 'undefined' ? `http://${window.location.hostname}:5001` : 'http://localhost:5001';
+    fetch(`${baseUrl}/api/product/${hsCode}/intelligence`)
       .then(r => r.json())
       .then(d => { if (d.product) setProduct(d.product); })
       .catch(console.error)
@@ -88,7 +89,8 @@ export default function ProductDetailPage() {
       setDestLoading(true);
       setIntelligence(null);
     }, 0);
-    fetch(`http://localhost:5001/api/product/${hsCode}/intelligence?destination=${destination}&weight=100`)
+    const baseUrl = typeof window !== 'undefined' ? `http://${window.location.hostname}:5001` : 'http://localhost:5001';
+    fetch(`${baseUrl}/api/product/${hsCode}/intelligence?destination=${destination}&weight=100`)
       .then(r => r.json())
       .then(d => setIntelligence(d))
       .catch(console.error)
@@ -98,9 +100,10 @@ export default function ProductDetailPage() {
   useEffect(() => {
     if (!product) return;
     const tops = ['India', 'UAE', 'Germany', 'Spain'];
-    Promise.all(tops.map(d =>
-      fetch(`http://localhost:5001/api/product/${hsCode}/intelligence?destination=${d}&weight=100`).then(r => r.json())
-    )).then(results => {
+    Promise.all(tops.map(d => {
+      const baseUrl = typeof window !== 'undefined' ? `http://${window.location.hostname}:5001` : 'http://localhost:5001';
+      return fetch(`${baseUrl}/api/product/${hsCode}/intelligence?destination=${d}&weight=100`).then(r => r.json());
+    })).then(results => {
       setComparisonData(results.map((r, i) => {
         if (!r.taxes || !r.freight) return { name: tops[i], Total: 0, Duty: 0, VAT: 0, Freight: 0 };
         const duty = ITEM_VALUE * (r.taxes.importDuty / 100);

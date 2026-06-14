@@ -13,6 +13,7 @@ import {
   Truck,
   Search,
   Loader2,
+  Sparkles,
 } from "lucide-react";
 
 // ─────────────────────────────────────────────────────────────
@@ -81,6 +82,43 @@ export default function CostCalculatorPage() {
   const [withInsurance, setInsurance] = useState(true);
   const [result, setResult] = useState<CostBreakdown | null>(null);
   const [loading, setLoading] = useState(false);
+
+  const [searchMode, setSearchMode] = useState<"standard" | "ai">("standard");
+  const [aiStatus, setAiStatus] = useState("");
+
+  const handleAISubmit = async () => {
+    if (!searchQuery.trim() || isSearching) return;
+
+    setIsSearching(true);
+    setAiStatus("Analyzing your prompt...");
+
+    try {
+      const baseUrl = typeof window !== 'undefined' ? `http://${window.location.hostname}:5001` : 'http://localhost:5001';
+      const parseRes = await fetch(`${baseUrl}/api/assistant/parse`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: searchQuery }),
+      });
+
+      if (!parseRes.ok) throw new Error('Parse failed');
+      const parsed = await parseRes.json();
+
+      if (parsed.destination && COUNTRIES.includes(parsed.destination)) setDestination(parsed.destination);
+      if (parsed.origin && COUNTRIES.includes(parsed.origin)) setOrigin(parsed.origin);
+      if (parsed.quantity) setQuantity(parsed.quantity.toString());
+      if (parsed.weight) setWeight(parsed.weight.toString());
+      if (parsed.mode) setMode(parsed.mode as FreightMode);
+      if (parsed.productValue) setProductValue(parsed.productValue.toString());
+      
+      setSearchQuery(parsed.product || searchQuery);
+    } catch (err) {
+      console.error(err);
+      alert('AI assistant encountered an error. Please try standard search.');
+    } finally {
+      setIsSearching(false);
+      setAiStatus("");
+    }
+  };
 
   useEffect(() => {
     // Triggers instantly from the very first letter
@@ -198,29 +236,78 @@ export default function CostCalculatorPage() {
 
             <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
               
-              {/* ── Live Search Input ── */}
+              {/* ── Live Search / AI Input ── */}
               <div style={{ position: "relative" }}>
-                <label>Search Product</label>
-                <div style={{ position: "relative" }}>
-                  <Search size={16} style={{ position: "absolute", left: "1rem", top: "50%", transform: "translateY(-50%)", color: "var(--muted)" }} />
-                  <input
-                    className="input"
-                    placeholder="Search by product name (e.g. potato, ceramic)..."
-                    value={searchQuery}
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      setSearchQuery(value);
-                      if (selectedHS) setSelectedHS(null);
-
-                      if (!value.trim()) {
-                        setHsOptions([]);
-                        setIsOpen(false);
-                      }
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                  <label style={{ margin: 0 }}>{searchMode === 'ai' ? 'AI Quick Fill' : 'Search Product'}</label>
+                  <button
+                    type="button"
+                    onClick={() => { setSearchMode(searchMode === 'ai' ? 'standard' : 'ai'); setSearchQuery(''); setSelectedHS(null); setIsOpen(false); }}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: '0.25rem',
+                      background: 'transparent', border: 'none', cursor: 'pointer',
+                      fontSize: '0.75rem', fontWeight: 600,
+                      color: searchMode === 'ai' ? 'var(--accent)' : 'var(--muted)',
                     }}
-                    style={{ paddingLeft: "2.5rem", width: "100%" }}
-                  />
-                  {isSearching && <Loader2 size={14} className="animate-spin" style={{ position: "absolute", right: "1rem", top: "50%", transform: "translateY(-50%)" }} />}
+                  >
+                    <Sparkles size={13} /> {searchMode === 'ai' ? 'Use Standard Search' : 'Try AI Assistant'}
+                  </button>
                 </div>
+                
+                <div style={{ position: "relative", display: "flex", gap: "0.5rem" }}>
+                  <div style={{ position: "relative", flex: 1 }}>
+                    {searchMode === 'ai' ? (
+                      <Sparkles size={16} style={{ position: "absolute", left: "1rem", top: "50%", transform: "translateY(-50%)", color: "var(--accent)" }} />
+                    ) : (
+                      <Search size={16} style={{ position: "absolute", left: "1rem", top: "50%", transform: "translateY(-50%)", color: "var(--muted)" }} />
+                    )}
+                    <input
+                      className="input"
+                      placeholder={searchMode === 'ai' ? "Try: 'ship 50kg leather wallets to Germany for $1000'..." : "Search by product name (e.g. potato, ceramic)..."}
+                      value={searchQuery}
+                      onKeyDown={(e) => {
+                        if (searchMode === 'ai' && e.key === 'Enter') {
+                          e.preventDefault();
+                          handleAISubmit();
+                        }
+                      }}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        setSearchQuery(value);
+                        if (selectedHS) setSelectedHS(null);
+
+                        if (!value.trim() || searchMode === 'ai') {
+                          setHsOptions([]);
+                          setIsOpen(false);
+                        }
+                      }}
+                      style={{ paddingLeft: "2.5rem", width: "100%", borderColor: searchMode === 'ai' ? 'var(--accent-border)' : 'var(--border)' }}
+                    />
+                    {isSearching && !aiStatus && <Loader2 size={14} className="animate-spin" style={{ position: "absolute", right: "1rem", top: "50%", transform: "translateY(-50%)", color: "var(--muted)" }} />}
+                  </div>
+                  
+                  {searchMode === 'ai' && (
+                    <button
+                      type="button"
+                      onClick={handleAISubmit}
+                      disabled={isSearching || !searchQuery.trim()}
+                      style={{
+                        background: 'var(--accent)', color: '#fff', border: 'none',
+                        borderRadius: 'var(--radius)', padding: '0 1rem',
+                        fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer',
+                        display: 'flex', alignItems: 'center', opacity: (!searchQuery.trim() || isSearching) ? 0.6 : 1
+                      }}
+                    >
+                      {isSearching ? <Loader2 size={16} className="animate-spin" /> : 'Ask AI'}
+                    </button>
+                  )}
+                </div>
+                
+                {aiStatus && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.75rem', color: 'var(--accent)', marginTop: '0.5rem', fontWeight: 500 }}>
+                    <Loader2 size={12} className="animate-spin" /> {aiStatus}
+                  </div>
+                )}
 
                 {isOpen && (
                   <div style={{ position: "absolute", top: "100%", left: 0, right: 0, background: "#fff", border: "1px solid var(--border)", borderRadius: "var(--radius)", marginTop: "0.25rem", maxHeight: 250, overflowY: "auto", zIndex: 100, boxShadow: "var(--shadow-md)" }}>

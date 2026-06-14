@@ -146,20 +146,22 @@ export default function Navbar() {
                 visibility: dropdownOpen ? 'visible' : 'hidden',
                 pointerEvents: dropdownOpen ? 'all' : 'none',
                 width: 580,
-                background: scrolled ? 'rgba(255,255,255,0.98)' : 'rgba(255,255,255,0.95)',
-                backdropFilter: 'blur(20px)',
-                WebkitBackdropFilter: 'blur(20px)',
-                border: '1px solid var(--border)',
-                borderRadius: 'var(--radius-lg)',
-                boxShadow: 'var(--shadow-lg)',
-                padding: '1.25rem',
-                marginTop: '0.5rem',
+                paddingTop: '0.5rem',
                 transition: 'opacity 0.2s ease-out, transform 0.2s ease-out, visibility 0.2s',
                 zIndex: 1010,
-                display: 'grid',
-                gridTemplateColumns: 'repeat(2, 1fr)',
-                gap: '0.75rem',
               }}>
+                <div style={{
+                  background: scrolled ? 'rgba(255,255,255,0.98)' : 'rgba(255,255,255,0.95)',
+                  backdropFilter: 'blur(20px)',
+                  WebkitBackdropFilter: 'blur(20px)',
+                  border: '1px solid var(--border)',
+                  borderRadius: 'var(--radius-lg)',
+                  boxShadow: 'var(--shadow-lg)',
+                  padding: '1.25rem',
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(2, 1fr)',
+                  gap: '0.75rem',
+                }}>
                 {SOLUTIONS.map(item => {
                   const Icon = item.icon;
                   const itemActive = pathname === item.href;
@@ -226,6 +228,7 @@ export default function Navbar() {
                     </Link>
                   );
                 })}
+                </div>
               </div>
             </div>
 

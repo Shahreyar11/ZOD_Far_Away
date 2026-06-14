@@ -87,7 +87,8 @@ export default function HSCodesPage() {
 
   /* ── Check backend health on mount ── */
   useEffect(() => {
-    fetch('http://localhost:5001/api/hs-scan/health')
+    const baseUrl = typeof window !== 'undefined' ? `http://${window.location.hostname}:5001` : 'http://localhost:5001';
+    fetch(`${baseUrl}/api/hs-scan/health`)
       .then(r => r.json())
       .then(d => setGeminiOk(d.geminiAvailable))
       .catch(() => setGeminiOk(false));
@@ -99,7 +100,8 @@ export default function HSCodesPage() {
     const timer = setTimeout(async () => {
       try {
         setLoading(true); setError('');
-        const res = await fetch(`http://localhost:5001/api/search?q=${encodeURIComponent(query)}`);
+        const baseUrl = typeof window !== 'undefined' ? `http://${window.location.hostname}:5001` : 'http://localhost:5001';
+        const res = await fetch(`${baseUrl}/api/search?q=${encodeURIComponent(query)}`);
         if (!res.ok) throw new Error('Search failed');
         const data = await res.json();
         setResults(data.results || []);
@@ -155,7 +157,8 @@ export default function HSCodesPage() {
     runScanAnimation();
 
     try {
-      const res = await fetch('http://localhost:5001/api/hs-scan/identify', {
+      const baseUrl = typeof window !== 'undefined' ? `http://${window.location.hostname}:5001` : 'http://localhost:5001';
+      const res = await fetch(`${baseUrl}/api/hs-scan/identify`, {
         method: 'POST',
         body: form,
       });
