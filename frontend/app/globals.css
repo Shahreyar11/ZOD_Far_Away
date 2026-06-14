@@ -511,10 +511,10 @@ textarea.input { resize: vertical; min-height: 110px; }
 /* ─────────────────────────────────────────────────────────────
    RESPONSIVE HELPERS
    ───────────────────────────────────────────────────────────── */
-@media (min-width: 900px) {
+@media (min-width: 1200px) {
   .mobile-only { display: none !important; }
 }
-@media (max-width: 899px) {
+@media (max-width: 1199px) {
   .desktop-only { display: none !important; }
 }
 
