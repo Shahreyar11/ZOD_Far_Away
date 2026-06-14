@@ -4,13 +4,17 @@ const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
 const mongoose = require('mongoose');
+const path = require('path');
 
 const app = express();
 
-app.use(helmet());
+app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
 app.use(cors());
 app.use(express.json());
 app.use(morgan('dev'));
+
+// Serve uploaded evidence files
+app.use('/uploads/theft-reports', express.static(path.join(__dirname, 'uploads', 'theft-reports')));
 
 const MONGODB_URI = process.env.MONGODB_URI;
 
@@ -123,6 +127,7 @@ app.get('/api/search', async (req, res) => {
 const { CountryTax, ComplianceRule, DocumentRule } = require('./models/TradeIntelligence');
 const { calculateFreightCost } = require('./services/freightEngine');
 const { startFuelIntelligenceCron } = require('./services/fuelIntelligence');
+const { optimizeRoute } = require('./services/routeOptimization');
 
 // Start the background cron job for fuel prices
 startFuelIntelligenceCron();
@@ -200,6 +205,7 @@ app.get('/api/product/:hsCode/intelligence', async (req, res) => {
     res.status(500).json({ error: "Internal server error." });
   }
 });
+
 
 
 // --- AI ASSISTANT PARSING ENDPOINT ---
@@ -544,6 +550,48 @@ User Query: "${query}"`
   }
 });
 
+
+// --- ROUTE OPTIMIZATION & CONGESTION ---
+
+app.get('/api/routes/optimize', async (req, res) => {
+  try {
+    const { origin, destination, modes = 'road,port,air,border' } = req.query;
+
+    if (!origin || !destination) {
+      return res.status(400).json({ error: "Query parameters 'origin' and 'destination' are required." });
+    }
+
+    const result = await optimizeRoute({ origin, destination, modes });
+    res.json(result);
+  } catch (error) {
+    console.error('Route optimization error:', error);
+    res.status(500).json({ error: error.message || 'Route optimization failed.' });
+  }
+});
+
+app.post('/api/routes/optimize', async (req, res) => {
+  try {
+    const { origin, destination, modes = ['road', 'port', 'air', 'border'] } = req.body;
+
+    if (!origin || !destination) {
+      return res.status(400).json({ error: "Body fields 'origin' and 'destination' are required." });
+    }
+
+    const result = await optimizeRoute({ origin, destination, modes });
+    res.json(result);
+  } catch (error) {
+    console.error('Route optimization error:', error);
+    res.status(500).json({ error: error.message || 'Route optimization failed.' });
+  }
+});
+
+// --- THEFT REPORTS ---
+const theftReportsRouter = require('./routes/theftReports');
+app.use('/api/theft-reports', theftReportsRouter);
+
+// --- WAREHOUSE CONGESTION PREDICTOR ---
+const warehouseCongestionRouter = require('./routes/warehouseCongestion');
+app.use('/api/warehouse-congestion', warehouseCongestionRouter);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {

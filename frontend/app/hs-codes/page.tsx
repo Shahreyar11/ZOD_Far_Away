@@ -45,7 +45,7 @@ export default function HSCodesPage() {
 }, [query]);
 
   const themeColor = '#0066FF';
-  const themeBg = '#EBF2FF';
+  // const themeBg = '#EBF2FF';
 
   return (
     <div style={{ minHeight: '80vh', background: 'var(--bg)' }}>

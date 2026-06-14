@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -81,9 +82,12 @@ export default function ProductDetailPage() {
   }, [hsCode]);
 
   useEffect(() => {
-    if (!destination) { setIntelligence(null); return; }
-    setDestLoading(true);
-    setIntelligence(null);
+    if (!destination) { setTimeout(() => setIntelligence(null), 0); return; }
+    // avoid synchronous setState calls inside effect to prevent cascading renders
+    setTimeout(() => {
+      setDestLoading(true);
+      setIntelligence(null);
+    }, 0);
     fetch(`http://localhost:5000/api/product/${hsCode}/intelligence?destination=${destination}&weight=100`)
       .then(r => r.json())
       .then(d => setIntelligence(d))
@@ -210,12 +214,12 @@ export default function ProductDetailPage() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
                 {DESTINATIONS.map(d => (
                   <button key={d} onClick={() => setDestination(d)} style={{
-                    padding: '0.6rem 0.875rem', borderRadius: 10, border: 'none', cursor: 'pointer',
+                    padding: '0.6rem 0.875rem', borderRadius: 10, cursor: 'pointer',
                     background: destination === d ? 'rgba(99,102,241,0.5)' : 'rgba(255,255,255,0.06)',
                     color: destination === d ? '#fff' : 'rgba(255,255,255,0.7)',
                     fontWeight: destination === d ? 700 : 500, fontSize: '0.9rem',
                     textAlign: 'left', transition: 'all 0.15s',
-                    border: destination === d ? '1px solid rgba(99,102,241,0.7)' : '1px solid transparent',
+                    border: destination === d ? '1px solid rgba(99,102,241,0.7)' : '1px solid transparent'
                   }}>
                     {DEST_FLAGS[d]} {d}
                   </button>

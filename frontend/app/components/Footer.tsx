@@ -7,6 +7,9 @@ const FOOTER_LINKS = {
   Tools: [
     { label: 'HS Code Search',        href: '/hs-codes' },
     { label: 'Cost Calculator',       href: '/cost-calculator' },
+    { label: 'Route Optimizer',       href: '/route-optimization' },
+    { label: 'Theft Reports',         href: '/theft-reports' },
+    { label: 'Warehouse Congestion',  href: '/warehouse-congestion' },
     { label: 'Supply Chain Planner',  href: '/supply-chain' },
   ],
   Services: [
